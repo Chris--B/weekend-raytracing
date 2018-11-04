@@ -59,6 +59,10 @@ fn write_image(filename: &str) -> io::Result<()> {
 // Linearly blend white and blue, depending on the "up" or
 // "downn"ness of the y coordinate.
 fn color(ray: &Ray) -> Float3 {
+    if hit_sphere(&Float3::xyz(0, 0, -1), 0.5, ray) {
+        // Our sphere is red!
+        return Float3::xyz(1, 0, 0);
+    }
     let white = Float3::xyz(1, 1, 1);
     let blue = Float3::xyz(0.5, 0.7, 1.0);
 
@@ -66,4 +70,21 @@ fn color(ray: &Ray) -> Float3 {
     // Scale [-1, 1] to [0, 1]
     let t = 0.5 * (unit_dir.y + 1.0);
     Float3::lerp(t, white, blue)
+}
+
+fn hit_sphere(center: &Float3, radius: Float, ray: &Ray) -> bool {
+    let oc = ray.origin - *center;
+    let a = ray.dir.length_sq();
+    let b = 2.0 * oc.dot(&ray.dir);
+    let c = oc.length_sq() - radius*radius;
+    let discriminant = b*b - 4.0*a*c;
+
+    // There are three cases to consider here:
+    //      1. discriminant < 0  => There are zero real solutions, no hit.
+    //      2. discriminant == 0 => There is exactly one real solutioin,
+    //          and the ray just barely grazes the sphere.
+    //          We'll call that a "miss"
+    //      3. discriminant > 0  => There are two real solutions, so the ray
+    //          intersects the sphere and we need to hande the coloring.
+    (discriminant > 0.0)
 }
