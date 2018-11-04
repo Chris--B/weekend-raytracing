@@ -10,12 +10,15 @@ pub type Float = f64;
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct Float3 {
-    x: Float,
-    y: Float,
-    z: Float,
+    pub x: Float,
+    pub y: Float,
+    pub z: Float,
 }
 
 impl Float3 {
+
+    // ---- Constructors ----------
+
     pub fn new() -> Float3 {
         Float3 {
             x: 0.0,
@@ -49,6 +52,7 @@ impl Float3 {
         }
     }
 
+    // ---- Access/Translations ----------
 
     pub fn as_slice(&self) -> &[Float; 3] {
         unsafe {
@@ -82,6 +86,17 @@ impl ops::AddAssign<Float3> for Float3 {
     }
 }
 
+impl ops::Sub for Float3 {
+    type Output = Self;
+    fn sub(self, rhs: Float3) -> Float3 {
+        Float3 {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+        }
+    }
+}
+
 impl ops::SubAssign<Float3> for Float3 {
     fn sub_assign(&mut self, rhs: Float3) {
         self.x -= rhs.x;
@@ -90,13 +105,13 @@ impl ops::SubAssign<Float3> for Float3 {
     }
 }
 
-impl ops::Sub for Float3 {
-    type Output = Self;
-    fn sub(self, rhs: Float3) -> Float3 {
+impl ops::Neg for Float3 {
+    type Output = Float3;
+    fn neg(self) -> Float3 {
         Float3 {
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-            z: self.z - rhs.z,
+            x: -self.x,
+            y: -self.y,
+            z: -self.z
         }
     }
 }
