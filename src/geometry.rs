@@ -45,7 +45,7 @@ impl Float3 {
     }
 }
 
-impl ops::Add for Float3 {
+impl ops::Add<Float3> for Float3 {
     type Output = Self;
     fn add(self, rhs: Float3) -> Float3 {
         Float3 {
@@ -67,28 +67,113 @@ impl ops::Sub for Float3 {
     }
 }
 
-impl ops::Mul<Float> for Float3 {
-    type Output = Self;
-    fn mul(self, rhs: Float) -> Float3 {
-        Float3 {
-            x: rhs * self.x,
-            y: rhs * self.y,
-            z: rhs * self.z,
+macro_rules! impl_scalar_mul_for {
+    ($prim:ty) => {
+        // $prim * Float3
+        impl ops::Mul<$prim> for Float3 {
+            type Output = Float3;
+            fn mul(self, rhs: $prim) -> Float3 {
+                Float3 {
+                    x: self.x * (rhs as Float),
+                    y: self.y * (rhs as Float),
+                    z: self.z * (rhs as Float),
+                }
+            }
+        }
+
+        // Float3 * $prim
+        impl ops::Mul<Float3> for $prim {
+            type Output = Float3;
+            fn mul(self, rhs: Float3) -> Float3 {
+                Float3 {
+                    x: self as Float * rhs.x,
+                    y: self as Float * rhs.y,
+                    z: self as Float * rhs.z,
+                }
+            }
+        }
+
+        // Float3 /= $prim
+        impl ops::MulAssign<$prim> for Float3 {
+            fn mul_assign(&mut self, rhs: $prim) {
+                self.x *= rhs as Float;
+                self.y *= rhs as Float;
+                self.z *= rhs as Float;
+            }
         }
     }
 }
 
-impl ops::Div<Float> for Float3 {
-    type Output = Self;
-    fn div(self, rhs: Float) -> Float3 {
-        Float3 {
-            x: self.x / rhs,
-            y: self.y / rhs,
-            z: self.z / rhs,
+macro_rules! impl_scalar_div_for {
+    ($prim:ty) => {
+        // $prim / Float3
+        impl ops::Div<$prim> for Float3 {
+            type Output = Float3;
+            fn div(self, rhs: $prim) -> Float3 {
+                Float3 {
+                    x: self.x / (rhs as Float),
+                    y: self.y / (rhs as Float),
+                    z: self.z / (rhs as Float),
+                }
+            }
+        }
+
+        // Float3 / $prim
+        impl ops::Div<Float3> for $prim {
+            type Output = Float3;
+            fn div(self, rhs: Float3) -> Float3 {
+                Float3 {
+                    x: self as Float / rhs.x,
+                    y: self as Float / rhs.y,
+                    z: self as Float / rhs.z,
+                }
+            }
+        }
+
+        // Float3 /= $prim
+        impl ops::DivAssign<$prim> for Float3 {
+            fn div_assign(&mut self, rhs: $prim) {
+                self.x /= rhs as Float;
+                self.y /= rhs as Float;
+                self.z /= rhs as Float;
+            }
         }
     }
 }
 
+// Scalar '*' overloads
+impl_scalar_mul_for!(f32);
+impl_scalar_mul_for!(f64);
+
+impl_scalar_mul_for!(u8);
+impl_scalar_mul_for!(u16);
+impl_scalar_mul_for!(u32);
+impl_scalar_mul_for!(u64);
+
+impl_scalar_mul_for!(i8);
+impl_scalar_mul_for!(i16);
+impl_scalar_mul_for!(i32);
+impl_scalar_mul_for!(i64);
+
+impl_scalar_mul_for!(usize);
+impl_scalar_mul_for!(isize);
+
+// Scalar '/' overloads
+impl_scalar_div_for!(f32);
+impl_scalar_div_for!(f64);
+
+impl_scalar_div_for!(u8);
+impl_scalar_div_for!(u16);
+impl_scalar_div_for!(u32);
+impl_scalar_div_for!(u64);
+
+impl_scalar_div_for!(i8);
+impl_scalar_div_for!(i16);
+impl_scalar_div_for!(i32);
+impl_scalar_div_for!(i64);
+
+impl_scalar_div_for!(usize);
+impl_scalar_div_for!(isize);
 
 #[cfg(test)]
 mod t {
@@ -128,5 +213,26 @@ mod t {
         assert_eq!(a, Float3::xyz(-1, -2, -3));
     }
 
+    #[test]
+    fn check_arithmatic() {
+        let mut a = Float3::xyz(1, 2, 3);
+
+        // Scalar Mul and Div
+        a = 5 * a;
+        assert_eq!(a, Float3::xyz(5, 10, 15));
+        a = a * 5u8;
+        assert_eq!(a, Float3::xyz(25, 50, 75));
+        a = a / 5isize;
+        assert_eq!(a, Float3::xyz(5, 10, 15));
+        let unused: Float3 = 5 / a;
+        assert_eq!(unused, Float3::xyz(5.0 / 5.0, 5.0 / 10.0, 5.0 / 15.0));
+
+        // Scalar Mul/Div Assign
+        a *= 2i16;
+        assert_eq!(a, Float3::xyz(10, 20, 30));
+        a /= 10u16;
+        assert_eq!(a, Float3::xyz(1.0, 2.0, 3.0));
+        // Note: `a` has now returned to its original value.
+    }
 
 }
