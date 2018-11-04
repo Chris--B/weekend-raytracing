@@ -32,6 +32,24 @@ impl Float3 {
         }
     }
 
+    pub fn xy<F: Into<Float>>(x: F, y: F) -> Float3 {
+        Float3 {
+            x: x.into(),
+            y: y.into(),
+            z: 0.0,
+        }
+    }
+
+    pub fn xxx<F: Into<Float>>(x: F) -> Float3 {
+        let x = x.into();
+        Float3 {
+            x: x,
+            y: x,
+            z: x,
+        }
+    }
+
+
     pub fn as_slice(&self) -> &[Float; 3] {
         unsafe {
             mem::transmute(&self.x)
@@ -74,9 +92,9 @@ macro_rules! impl_scalar_mul_for {
             type Output = Float3;
             fn mul(self, rhs: $prim) -> Float3 {
                 Float3 {
-                    x: self.x * (rhs as Float),
-                    y: self.y * (rhs as Float),
-                    z: self.z * (rhs as Float),
+                    x: self.x * rhs as Float,
+                    y: self.y * rhs as Float,
+                    z: self.z * rhs as Float,
                 }
             }
         }
