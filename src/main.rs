@@ -7,8 +7,8 @@ use std::{
 
 use image;
 
-mod geometry;
-use self::geometry::{
+mod float3;
+use self::float3::{
     Float,
     Float3
 };

@@ -258,7 +258,7 @@ impl_scalar_div_for!(isize);
 mod t {
     use std::mem;
 
-    use crate::geometry::{
+    use crate::float3::{
         Float,
         Float3,
     };
