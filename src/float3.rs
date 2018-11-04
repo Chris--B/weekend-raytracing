@@ -19,7 +19,7 @@ impl Float3 {
 
     // ---- Constructors ----------
 
-    pub fn new() -> Float3 {
+    pub const fn new() -> Float3 {
         Float3 {
             x: 0.0,
             y: 0.0,
