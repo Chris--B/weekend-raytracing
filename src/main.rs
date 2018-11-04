@@ -16,13 +16,15 @@ use self::float3::{
 };
 use self::ray::Ray;
 
+// Linearly blend white and blue, depending on the "up" or
+// "downn"ness of the y coordinate.
 fn color(ray: &Ray) -> Float3 {
-    let unit_dir = ray.dir.unit();
-    // Linearly blend white and blue, depending on the "up" or "downn"ness
-    // of the y coordinate.
-    let t = 0.5 * (unit_dir.y + 1.0);
     let white = Float3::xyz(1, 1, 1);
     let blue = Float3::xyz(0.5, 0.7, 1.0);
+
+    let unit_dir = ray.dir.unit();
+    // Scale [-1, 1] to [0, 1]
+    let t = 0.5 * (unit_dir.y + 1.0);
     Float3::lerp(t, white, blue)
 }
 
@@ -37,6 +39,8 @@ fn write_image(filename: &str) -> io::Result<()> {
 
     let mut imgbuf = image::RgbImage::new(nx, ny);
     for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
+        // Go through `y` "backwards"
+        let y = ny - y + 1;
         let u = x as Float / nx as Float;
         let v = y as Float / ny as Float;
         let ray = Ray {
