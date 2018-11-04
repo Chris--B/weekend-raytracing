@@ -1,9 +1,14 @@
+// This is in-development and going to be noisey.
+#![allow(dead_code)]
 
 use std::{
     io,
 };
 
 use image;
+
+mod geometry;
+use self::geometry::Float3;
 
 fn write_image(filename: &str) -> io::Result<()> {
     let nx = 200;
