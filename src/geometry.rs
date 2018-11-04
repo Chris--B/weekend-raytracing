@@ -65,6 +65,36 @@ impl Float3 {
             mem::transmute(&mut self.x)
         }
     }
+
+    // ---- Mathy Operations ----------
+
+    pub fn dot(&self, other: &Float3) -> Float {
+        (self.x * other.x) +
+        (self.y * other.y) +
+        (self.z * other.z)
+    }
+
+    pub fn cross(&self, other: &Float3) -> Float3 {
+        let v1 = self;
+        let v2 = &other;
+        Float3 {
+            x:  (v1.y*v2.z - v1.z*v2.y),
+            y: -(v1.x*v2.z - v1.z*v2.x),
+            z:  (v1.x*v2.y - v1.y*v2.x),
+        }
+    }
+
+    pub fn length(&self) -> Float {
+        self.length_sq().sqrt()
+    }
+
+    pub fn length_sq(&self) -> Float {
+        self.dot(self)
+    }
+
+    pub fn make_normal(&mut self) {
+        *self /= self.length()
+    }
 }
 
 impl ops::Add<Float3> for Float3 {
@@ -294,4 +324,34 @@ mod t {
         assert_eq!(a, Float3::xyz(1, 2, 3));
     }
 
+    #[test]
+    fn check_mathy() {
+        let i = Float3::xyz(1, 0, 0);
+        let j = Float3::xyz(0, 1, 0);
+        let k = Float3::xyz(0, 0, 1);
+
+        // The three axes "cross" in a loop: ijk, jki, kij, etc.
+        // The cross of the first two always equals the third.
+        assert_eq!(i.cross(&j), k);
+        assert_eq!(j.cross(&k), i);
+        assert_eq!(k.cross(&i), j);
+
+        // If you "cross" the loop backwards, the results' signs flip.
+        assert_eq!(j.cross(&i), -k);
+        assert_eq!(k.cross(&j), -i);
+        assert_eq!(i.cross(&k), -j);
+
+        // Just for good measure, here's an example from "Paul's Notes":
+        let a = Float3::xyz(2, 1, -1);
+        let b = Float3::xyz(-3, 4, 1);
+
+        // Same extra sanity checks
+        // Anything crossed with itself is zero.
+        assert_eq!(a.cross(&a), Float3::xxx(0.0));
+        assert_eq!(b.cross(&b), Float3::xxx(0.0));
+
+        // Solutions from Paul's Notes.
+        assert_eq!(a.cross(&b), Float3::xyz(5, 1, 11));
+        assert_eq!(b.cross(&a), Float3::xyz(-5, -1, -11));
+    }
 }
