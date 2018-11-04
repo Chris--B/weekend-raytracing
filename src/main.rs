@@ -8,7 +8,6 @@ use std::{
 use image;
 
 mod geometry;
-use self::geometry::Float3;
 
 fn write_image(filename: &str) -> io::Result<()> {
     let nx = 200;
