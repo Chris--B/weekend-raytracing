@@ -8,10 +8,23 @@ use std::{
 use image;
 
 mod float3;
+mod ray;
+
 use self::float3::{
     Float,
     Float3
 };
+use self::ray::Ray;
+
+fn color(ray: &Ray) -> Float3 {
+    let unit_dir = ray.dir.unit();
+    // Linearly blend white and blue, depending on the "up" or "downn"ness
+    // of the y coordinate.
+    let t = 0.5 * (unit_dir.y + 1.0);
+    let white = Float3::xyz(1, 1, 1);
+    let blue = Float3::xyz(0.5, 0.7, 1.0);
+    Float3::lerp(t, white, blue)
+}
 
 fn write_image(filename: &str) -> io::Result<()> {
     let nx = 200;

@@ -68,6 +68,10 @@ impl Float3 {
 
     // ---- Mathy Operations ----------
 
+    pub fn lerp(t: Float, a: Float3, b: Float3) -> Float3 {
+        (1.0 - t) * a + t * b
+    }
+
     pub fn dot(&self, other: &Float3) -> Float {
         (self.x * other.x) +
         (self.y * other.y) +
@@ -92,7 +96,11 @@ impl Float3 {
         self.dot(self)
     }
 
-    pub fn make_normal(&mut self) {
+    pub fn unit(&self) -> Float3 {
+        *self / self.length()
+    }
+
+    pub fn make_unit(&mut self) {
         *self /= self.length()
     }
 }
