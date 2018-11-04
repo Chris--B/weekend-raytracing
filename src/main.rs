@@ -30,13 +30,20 @@ fn write_image(filename: &str) -> io::Result<()> {
     let nx = 200;
     let ny = 100;
 
+    let lower_left = Float3::xyz(-2, -1, -1);
+    let horizontal = Float3::xyz(4, 0, 0);
+    let vertical   = Float3::xyz(0, 2, 0);
+    let origin     = Float3::xyz(0, 0, 0);
+
     let mut imgbuf = image::RgbImage::new(nx, ny);
     for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
-        let mut rgb = Float3 {
-            x: x as Float / nx as Float,
-            y: y as Float / ny as Float,
-            z: 0.2,
+        let u = x as Float / nx as Float;
+        let v = y as Float / ny as Float;
+        let ray = Ray {
+            origin,
+            dir: lower_left + u*horizontal + v*vertical,
         };
+        let mut rgb = color(&ray);
         assert!(rgb.x.abs() <= 1.0);
         assert!(rgb.y.abs() <= 1.0);
         assert!(rgb.z.abs() <= 1.0);
