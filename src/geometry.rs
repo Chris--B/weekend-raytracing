@@ -74,6 +74,22 @@ impl ops::Add<Float3> for Float3 {
     }
 }
 
+impl ops::AddAssign<Float3> for Float3 {
+    fn add_assign(&mut self, rhs: Float3) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
+    }
+}
+
+impl ops::SubAssign<Float3> for Float3 {
+    fn sub_assign(&mut self, rhs: Float3) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+        self.z -= rhs.z;
+    }
+}
+
 impl ops::Sub for Float3 {
     type Output = Self;
     fn sub(self, rhs: Float3) -> Float3 {
@@ -251,6 +267,16 @@ mod t {
         a /= 10u16;
         assert_eq!(a, Float3::xyz(1.0, 2.0, 3.0));
         // Note: `a` has now returned to its original value.
+
+        // Vector Add
+        assert_eq!(a + Float3::xxx(10), Float3::xyz(11, 12, 13));
+        a += Float3::xxx(10);
+        assert_eq!(a, Float3::xyz(11, 12, 13));
+
+        // Vector Sub
+        assert_eq!(a - Float3::xxx(10), Float3::xyz(1, 2, 3));
+        a -= Float3::xxx(10);
+        assert_eq!(a, Float3::xyz(1, 2, 3));
     }
 
 }
