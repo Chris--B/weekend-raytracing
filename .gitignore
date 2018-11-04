@@ -2,3 +2,4 @@
 **/*.rs.bk
 /RayTracing-OneWeekend/
 *.ppm
+*.png
