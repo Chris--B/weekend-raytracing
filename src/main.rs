@@ -30,7 +30,7 @@ fn write_image(filename: &str) -> io::Result<()> {
     // Our camera is dumb and won't fix our aspect ratio.
     // It currently assumes 2:1.
     let ny = nx / 2;
-    let ns = 50;
+    let ns = 16;
 
     let cam = Camera::default();
     let world = HitableList {
