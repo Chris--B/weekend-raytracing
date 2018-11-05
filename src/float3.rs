@@ -154,6 +154,43 @@ impl ops::Neg for Float3 {
     }
 }
 
+macro_rules! impl_scalar_add_for {
+    ($prim:ty) => {
+        // $prim + Float3
+        impl ops::Add<$prim> for Float3 {
+            type Output = Float3;
+            fn add(self, rhs: $prim) -> Float3 {
+                Float3 {
+                    x: self.x + rhs as Float,
+                    y: self.y + rhs as Float,
+                    z: self.z + rhs as Float,
+                }
+            }
+        }
+
+        // Float3 + $prim
+        impl ops::Add<Float3> for $prim {
+            type Output = Float3;
+            fn add(self, rhs: Float3) -> Float3 {
+                Float3 {
+                    x: self as Float + rhs.x,
+                    y: self as Float + rhs.y,
+                    z: self as Float + rhs.z,
+                }
+            }
+        }
+
+        // Float3 += $prim
+        impl ops::AddAssign<$prim> for Float3 {
+            fn add_assign(&mut self, rhs: $prim) {
+                self.x += rhs as Float;
+                self.y += rhs as Float;
+                self.z += rhs as Float;
+            }
+        }
+    }
+}
+
 macro_rules! impl_scalar_mul_for {
     ($prim:ty) => {
         // $prim * Float3
@@ -180,7 +217,7 @@ macro_rules! impl_scalar_mul_for {
             }
         }
 
-        // Float3 /= $prim
+        // Float3 *= $prim
         impl ops::MulAssign<$prim> for Float3 {
             fn mul_assign(&mut self, rhs: $prim) {
                 self.x *= rhs as Float;
@@ -227,6 +264,23 @@ macro_rules! impl_scalar_div_for {
         }
     }
 }
+
+// Scalar '+' overloads
+impl_scalar_add_for!(f32);
+impl_scalar_add_for!(f64);
+
+impl_scalar_add_for!(u8);
+impl_scalar_add_for!(u16);
+impl_scalar_add_for!(u32);
+impl_scalar_add_for!(u64);
+
+impl_scalar_add_for!(i8);
+impl_scalar_add_for!(i16);
+impl_scalar_add_for!(i32);
+impl_scalar_add_for!(i64);
+
+impl_scalar_add_for!(usize);
+impl_scalar_add_for!(isize);
 
 // Scalar '*' overloads
 impl_scalar_mul_for!(f32);
