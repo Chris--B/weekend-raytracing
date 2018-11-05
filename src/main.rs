@@ -3,6 +3,7 @@
 
 use std::{
     io,
+    rc::Rc,
 };
 
 use image;
@@ -17,6 +18,7 @@ mod ray;
 use self::camera::Camera;
 use self::float3::*;
 use self::hitable::*;
+use self::material::*;
 use self::ray::Ray;
 
 fn main() {
@@ -24,8 +26,11 @@ fn main() {
 }
 
 fn write_image(filename: &str) -> io::Result<()> {
-    let nx = 200;
-    let ny = 100;
+    let nx = 1920;
+    let ny = 1080;
+
+    // let nx = 200;
+    // let ny = 100;
     let ns = 16;
 
     let cam = Camera::default();
@@ -33,11 +38,17 @@ fn write_image(filename: &str) -> io::Result<()> {
         hitables: vec![
             Box::new(Sphere {
                 center: Float3::xyz(0, 0, -1),
-                radius: 0.5
+                radius: 0.5,
+                material: Rc::new(Lambertian {
+                    albedo: Float3::xyz(0.8, 0.3, 0.3),
+                }),
             }),
             Box::new(Sphere {
                 center: Float3::xyz(0.0, -100.5, -1.0),
-                radius: 100.0
+                radius: 100.0,
+                material: Rc::new(Lambertian {
+                    albedo: Float3::xyz(0.8, 0.8, 0.0),
+                }),
             }),
         ],
     };
@@ -52,7 +63,7 @@ fn write_image(filename: &str) -> io::Result<()> {
             let u = (x as Float + random::<Float>()) / nx as Float;
             let v = (y as Float + random::<Float>()) / ny as Float;
             let ray = cam.get_ray(u, v);
-            rgb += color(&ray, &world);
+            rgb += color(&ray, &world, 0);
             // Sanity checks
             // TODO: These are probably expensive, this is a hot loop.
             assert!(0.0 <= rgb.x && rgb.x <= ns as Float,
@@ -80,12 +91,20 @@ fn write_image(filename: &str) -> io::Result<()> {
     Ok(())
 }
 
-fn color(ray: &Ray, world: &dyn Hitable) -> Float3 {
+fn color(ray: &Ray, world: &dyn Hitable, depth: u32) -> Float3 {
     if let Some(hit_record) = world.hit(ray, 1.0e-3, std::f64::MAX as Float) {
-        let HitRecord { p, normal, .. } = hit_record;
-        let target = p + normal + Float3::random_in_sphere();
-        let next_ray = Ray { origin: p, dir: target-p };
-        0.5 * color(&next_ray, world)
+        let mut scattered = Ray::default();
+        let mut attenuation = Float3::new();
+        if depth < 50 &&
+           hit_record.material.scatter(ray,
+                                       &hit_record,
+                                       &mut attenuation,
+                                       &mut scattered)
+        {
+            attenuation * color(&scattered, world, depth + 1)
+        } else {
+            Float3::new()
+        }
     } else {
         // Linearly blend white and blue, depending on the "up" or
         // "downn"ness of the y coordinate.

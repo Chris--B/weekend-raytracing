@@ -13,13 +13,13 @@ pub trait Material: std::fmt::Debug {
 }
 
 #[derive(Copy, Clone, Debug, Default)]
-struct Lambertian {
+pub struct Lambertian {
     pub albedo: Float3,
 }
 
 impl Material for Lambertian {
     fn scatter(&self,
-               ray_in:      &Ray,
+               _ray_in:     &Ray,
                record:      &HitRecord,
                attenuation: &mut Float3,
                scattered:   &mut Ray)
@@ -33,7 +33,7 @@ impl Material for Lambertian {
 }
 
 #[derive(Copy, Clone, Debug, Default)]
-struct Metal {
+pub struct Metal {
     pub albedo: Float3,
 }
 

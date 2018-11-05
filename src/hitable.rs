@@ -5,7 +5,7 @@ use crate::float3::*;
 use crate::material::Material;
 use crate::ray::Ray;
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Debug)]
 pub struct HitRecord {
     // t-value of hit.
     pub t: Float,
@@ -14,17 +14,18 @@ pub struct HitRecord {
     // Normal value at point of hit.
     pub normal: Float3,
     // Material of hit.
-    pub material: Option<Rc<dyn Material>>
+    pub material: Rc<dyn Material>,
 }
 
 pub trait Hitable {
     fn hit(&self, ray: &Ray, t_min: Float, t_max: Float) -> Option<HitRecord>;
 }
 
-#[derive(Copy, Clone, Default, Debug)]
+#[derive(Clone, Debug)]
 pub struct Sphere {
     pub center: Float3,
     pub radius: Float,
+    pub material: Rc<dyn Material>,
 }
 
 impl Hitable for Sphere {
@@ -50,7 +51,8 @@ impl Hitable for Sphere {
                 let p      = ray.at_t(t);
                 // Make sure `normal` stays normal.
                 let normal = (p - self.center) / self.radius;
-                return Some(HitRecord { t, p, normal, material: None });
+                let material = self.material.clone();
+                return Some(HitRecord { t, p, normal, material });
             }
             // It wasn't - check if the second one is.
             let t = (-b + discriminant.sqrt()) / a;
@@ -58,7 +60,8 @@ impl Hitable for Sphere {
                 let p      = ray.at_t(t);
                 // Make sure `normal` stays normal.
                 let normal = (p - self.center) / self.radius;
-                return Some(HitRecord { t, p, normal, material: None });
+                let material = self.material.clone();
+                return Some(HitRecord { t, p, normal, material });
             }
         }
         // Nothing worked - no hit.
@@ -73,22 +76,16 @@ pub struct HitableList {
 
 impl Hitable for HitableList {
     fn hit(&self, ray: &Ray, t_min: Float, t_max: Float) -> Option<HitRecord> {
-        let mut hit_record = HitRecord::default();
-        let mut any_hit = false;
+        let mut o_hit_record = None;
         let mut closest = t_max;
 
         for hitable in self.hitables.iter() {
             if let Some(new_record) = hitable.hit(ray, t_min, closest) {
-                any_hit = true;
                 closest = new_record.t;
-                hit_record = new_record;
+                o_hit_record = Some(new_record);
             }
         }
 
-        if any_hit {
-            Some(hit_record)
-        } else {
-            None
-        }
+        o_hit_record
     }
 }
