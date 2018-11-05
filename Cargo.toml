@@ -5,6 +5,7 @@ authors = ["Chris Butler <chrisbutler296@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+rand = "^0.5.5"
 
 [dependencies.image]
 version = "^0.20"

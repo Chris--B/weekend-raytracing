@@ -6,6 +6,7 @@ use std::{
 };
 
 use image;
+use rand::prelude::*;
 
 mod float3;
 mod ray;
