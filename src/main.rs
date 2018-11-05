@@ -48,16 +48,19 @@ fn write_image(filename: &str) -> io::Result<()> {
         let y = ny - y + 1;
         let mut rgb = Float3::default();
         // MSAA
-        for _ in 0..ns {
+        for sample in 0..ns {
             let u = (x as Float + random::<Float>()) / nx as Float;
             let v = (y as Float + random::<Float>()) / ny as Float;
             let ray = cam.get_ray(u, v);
             rgb += color(&ray, &world);
             // Sanity checks
             // TODO: These are probably expensive, this is a hot loop.
-            assert!(0.0 <= rgb.x && rgb.x <= ns as Float, "rgb = {:?}", rgb);
-            assert!(0.0 <= rgb.y && rgb.y <= ns as Float, "rgb = {:?}", rgb);
-            assert!(0.0 <= rgb.z && rgb.z <= ns as Float, "rgb = {:?}", rgb);
+            assert!(0.0 <= rgb.x && rgb.x <= ns as Float,
+                    "({}, {}) #{} rgb = {:?}", x, y, sample, rgb / sample);
+            assert!(0.0 <= rgb.y && rgb.y <= ns as Float,
+                    "({}, {}) #{} rgb = {:?}", x, y, sample, rgb / sample);
+            assert!(0.0 <= rgb.z && rgb.z <= ns as Float,
+                    "({}, {}) #{} rgb = {:?}", x, y, sample, rgb / sample);
         }
         // Average mutlisamples
         rgb /= ns;
