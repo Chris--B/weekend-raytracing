@@ -9,6 +9,7 @@ use image;
 
 mod float3;
 mod ray;
+mod hitable;
 
 use self::float3::{
     Float,
@@ -56,23 +57,22 @@ fn write_image(filename: &str) -> io::Result<()> {
     Ok(())
 }
 
-// Linearly blend white and blue, depending on the "up" or
-// "downn"ness of the y coordinate.
 fn color(ray: &Ray) -> Float3 {
-    if hit_sphere(&Float3::xyz(0, 0, -1), 0.5, ray) {
-        // Our sphere is red!
-        return Float3::xyz(1, 0, 0);
-    }
-    let white = Float3::xyz(1, 1, 1);
-    let blue = Float3::xyz(0.5, 0.7, 1.0);
+    if let Some(t) = hit_sphere(&Float3::xyz(0, 0, -1), 0.5, ray) {
+        let n = (ray.at_t(t) - Float3::xyz(0, 0, -1)).unit();
+        0.5 * (1.0 + n)
+    } else {
+        // Linearly blend white and blue, depending on the "up" or
+        // "downn"ness of the y coordinate.
+        let white = Float3::xyz(1, 1, 1);
+        let blue = Float3::xyz(0.5, 0.7, 1.0);
 
-    let unit_dir = ray.dir.unit();
-    // Scale [-1, 1] to [0, 1]
-    let t = 0.5 * (unit_dir.y + 1.0);
-    Float3::lerp(t, white, blue)
+        let t = 0.5 * (1.0 + ray.dir.unit().y);
+        Float3::lerp(t, white, blue)
+    }
 }
 
-fn hit_sphere(center: &Float3, radius: Float, ray: &Ray) -> bool {
+fn hit_sphere(center: &Float3, radius: Float, ray: &Ray) -> Option<Float> {
     let oc = ray.origin - *center;
     let a = ray.dir.length_sq();
     let b = 2.0 * oc.dot(&ray.dir);
@@ -86,5 +86,9 @@ fn hit_sphere(center: &Float3, radius: Float, ray: &Ray) -> bool {
     //          We'll call that a "miss"
     //      3. discriminant > 0  => There are two real solutions, so the ray
     //          intersects the sphere and we need to hande the coloring.
-    (discriminant > 0.0)
+    if discriminant < 0.0 {
+        None
+    } else {
+        Some((-b - discriminant.sqrt()) / (2.0 * a))
+    }
 }
