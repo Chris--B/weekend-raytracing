@@ -71,7 +71,10 @@ fn write_image(filename: &str) -> io::Result<()> {
 
 fn color(ray: &Ray, world: &dyn Hitable) -> Float3 {
     if let Some(hit_record) = world.hit(ray, 0.0, std::f64::MAX as Float) {
-        0.5 * (1.0 + hit_record.normal)
+        let HitRecord { p, normal, .. } = hit_record;
+        let target = p + normal + Float3::random_in_sphere();
+        let next_ray = Ray { origin: p, dir: target-p };
+        0.5 * color(&next_ray, world)
     } else {
         // Linearly blend white and blue, depending on the "up" or
         // "downn"ness of the y coordinate.
