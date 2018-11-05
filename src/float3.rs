@@ -87,6 +87,14 @@ impl Float3 {
 
     // ---- Mathy Operations ----------
 
+    pub fn sqrt(&self) -> Float3 {
+        Float3 {
+            x: self.x.sqrt(),
+            y: self.y.sqrt(),
+            z: self.z.sqrt(),
+        }
+    }
+
     pub fn lerp(t: Float, a: Float3, b: Float3) -> Float3 {
         (1.0 - t) * a + t * b
     }

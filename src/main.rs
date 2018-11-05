@@ -46,16 +46,23 @@ fn write_image(filename: &str) -> io::Result<()> {
         // Go through `y` "backwards"
         let y = ny - y + 1;
         let mut rgb = Float3::default();
+        // MSAA
         for _ in 0..ns {
             let u = (x as Float + random::<Float>()) / nx as Float;
             let v = (y as Float + random::<Float>()) / ny as Float;
             let ray = cam.get_ray(u, v);
             rgb += color(&ray, &world);
+            // Sanity checks
+            // TODO: These are probably expensive, this is a hot loop.
             assert!(0.0 <= rgb.x && rgb.x <= ns as Float, "rgb = {:?}", rgb);
             assert!(0.0 <= rgb.y && rgb.y <= ns as Float, "rgb = {:?}", rgb);
             assert!(0.0 <= rgb.z && rgb.z <= ns as Float, "rgb = {:?}", rgb);
         }
+        // Average mutlisamples
         rgb /= ns;
+        // Gamma correct
+        rgb = rgb.sqrt();
+        // Scale into u8 range
         rgb *= 255.99;
         *pixel = image::Rgb([
             rgb.x as u8,
@@ -70,7 +77,7 @@ fn write_image(filename: &str) -> io::Result<()> {
 }
 
 fn color(ray: &Ray, world: &dyn Hitable) -> Float3 {
-    if let Some(hit_record) = world.hit(ray, 0.0, std::f64::MAX as Float) {
+    if let Some(hit_record) = world.hit(ray, 1.0e-3, std::f64::MAX as Float) {
         let HitRecord { p, normal, .. } = hit_record;
         let target = p + normal + Float3::random_in_sphere();
         let next_ray = Ray { origin: p, dir: target-p };
