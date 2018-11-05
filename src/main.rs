@@ -26,11 +26,8 @@ fn main() {
 }
 
 fn write_image(filename: &str) -> io::Result<()> {
-    let nx = 1920;
-    let ny = 1080;
-
-    // let nx = 200;
-    // let ny = 100;
+    let nx = 200;
+    let ny = 100;
     let ns = 16;
 
     let cam = Camera::default();
@@ -48,6 +45,20 @@ fn write_image(filename: &str) -> io::Result<()> {
                 radius: 100.0,
                 material: Rc::new(Lambertian {
                     albedo: Float3::xyz(0.8, 0.8, 0.0),
+                }),
+            }),
+            Box::new(Sphere {
+                center: Float3::xyz(1, 0, -1),
+                radius: 0.5,
+                material: Rc::new(Metal {
+                    albedo: Float3::xyz(0.8, 0.6, 0.2),
+                }),
+            }),
+            Box::new(Sphere {
+                center: Float3::xyz(-1, 0, -1),
+                radius: 0.5,
+                material: Rc::new(Metal {
+                    albedo: Float3::xyz(0.8, 0.8, 0.8),
                 }),
             }),
         ],
