@@ -186,6 +186,25 @@ impl ops::Neg for Float3 {
     }
 }
 
+impl ops::Mul<Float3> for Float3 {
+    type Output = Self;
+    fn mul(self, rhs: Float3) -> Float3 {
+        Float3 {
+            x: self.x * rhs.x,
+            y: self.y * rhs.y,
+            z: self.z * rhs.z,
+        }
+    }
+}
+
+impl ops::MulAssign<Float3> for Float3 {
+    fn mul_assign(&mut self, rhs: Float3) {
+        self.x *= rhs.x;
+        self.y *= rhs.y;
+        self.z *= rhs.z;
+    }
+}
+
 macro_rules! impl_scalar_add_for {
     ($prim:ty) => {
         // $prim + Float3
