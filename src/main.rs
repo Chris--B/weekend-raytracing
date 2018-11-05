@@ -8,20 +8,15 @@ use std::{
 use image;
 use rand::prelude::*;
 
+mod camera;
 mod float3;
-mod ray;
 mod hitable;
+mod ray;
 
-use self::float3::{
-    Float,
-    Float3
-};
+use self::camera::Camera;
+use self::float3::*;
+use self::hitable::*;
 use self::ray::Ray;
-use self::hitable::{
-    Hitable,
-    HitableList,
-    Sphere,
-};
 
 fn main() {
     write_image("output.png").unwrap();
@@ -30,12 +25,9 @@ fn main() {
 fn write_image(filename: &str) -> io::Result<()> {
     let nx = 200;
     let ny = 100;
+    let ns = 16;
 
-    let lower_left = Float3::xyz(-2, -1, -1);
-    let horizontal = Float3::xyz(4, 0, 0);
-    let vertical   = Float3::xyz(0, 2, 0);
-    let origin     = Float3::xyz(0, 0, 0);
-
+    let cam = Camera::default();
     let world = HitableList {
         hitables: vec![
             Box::new(Sphere {
@@ -53,23 +45,24 @@ fn write_image(filename: &str) -> io::Result<()> {
     for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
         // Go through `y` "backwards"
         let y = ny - y + 1;
-        let u = x as Float / nx as Float;
-        let v = y as Float / ny as Float;
-        let ray = Ray {
-            origin,
-            dir: lower_left + u*horizontal + v*vertical,
-        };
-        let mut rgb = color(&ray, &world);
-        assert!(0.0 <= rgb.x && rgb.x <= 1.0);
-        assert!(0.0 <= rgb.y && rgb.y <= 1.0);
-        assert!(0.0 <= rgb.z && rgb.z <= 1.0);
+        let mut rgb = Float3::default();
+        for _ in 0..ns {
+            let u = (x as Float + random::<Float>()) / nx as Float;
+            let v = (y as Float + random::<Float>()) / ny as Float;
+            let ray = cam.get_ray(u, v);
+            rgb += color(&ray, &world);
+            assert!(0.0 <= rgb.x && rgb.x <= ns as Float, "rgb = {:?}", rgb);
+            assert!(0.0 <= rgb.y && rgb.y <= ns as Float, "rgb = {:?}", rgb);
+            assert!(0.0 <= rgb.z && rgb.z <= ns as Float, "rgb = {:?}", rgb);
+        }
+        rgb /= ns;
         rgb *= 255.99;
-
         *pixel = image::Rgb([
             rgb.x as u8,
             rgb.y as u8,
             rgb.z as u8,
         ]);
+
     }
 
     imgbuf.save(filename)?;
