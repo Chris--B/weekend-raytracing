@@ -1,11 +1,11 @@
 
-use crate::float3::{
-    Float,
-    Float3,
-};
+use std::rc::Rc;
+
+use crate::float3::*;
+use crate::material::Material;
 use crate::ray::Ray;
 
-#[derive(Copy, Clone, Default, Debug)]
+#[derive(Clone, Default, Debug)]
 pub struct HitRecord {
     // t-value of hit.
     pub t: Float,
@@ -13,6 +13,8 @@ pub struct HitRecord {
     pub p: Float3,
     // Normal value at point of hit.
     pub normal: Float3,
+    // Material of hit.
+    pub material: Option<Rc<dyn Material>>
 }
 
 pub trait Hitable {
@@ -48,7 +50,7 @@ impl Hitable for Sphere {
                 let p      = ray.at_t(t);
                 // Make sure `normal` stays normal.
                 let normal = (p - self.center) / self.radius;
-                return Some(HitRecord { t, p, normal });
+                return Some(HitRecord { t, p, normal, material: None });
             }
             // It wasn't - check if the second one is.
             let t = (-b + discriminant.sqrt()) / a;
@@ -56,7 +58,7 @@ impl Hitable for Sphere {
                 let p      = ray.at_t(t);
                 // Make sure `normal` stays normal.
                 let normal = (p - self.center) / self.radius;
-                return Some(HitRecord { t, p, normal });
+                return Some(HitRecord { t, p, normal, material: None });
             }
         }
         // Nothing worked - no hit.

@@ -11,6 +11,7 @@ use rand::prelude::*;
 mod camera;
 mod float3;
 mod hitable;
+mod material;
 mod ray;
 
 use self::camera::Camera;
