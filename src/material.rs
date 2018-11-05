@@ -35,6 +35,7 @@ impl Material for Lambertian {
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Metal {
     pub albedo: Float3,
+    pub fuzz:   Float,
 }
 
 impl Material for Metal {
@@ -47,7 +48,8 @@ impl Material for Metal {
     {
         let reflected = ray_in.dir.unit().reflect(record.normal);
         *attenuation = self.albedo;
-        *scattered   = Ray { origin: record.p, dir: reflected };
+        let dir = reflected + self.fuzz * Float3::random_in_sphere();
+        *scattered   = Ray { origin: record.p, dir };
         (scattered.dir.dot(&record.normal) > 0.0)
     }
 }

@@ -27,8 +27,10 @@ fn main() {
 
 fn write_image(filename: &str) -> io::Result<()> {
     let nx = 200;
-    let ny = 100;
-    let ns = 16;
+    // Our camera is dumb and won't fix our aspect ratio.
+    // It currently assumes 2:1.
+    let ny = nx / 2;
+    let ns = 50;
 
     let cam = Camera::default();
     let world = HitableList {
@@ -52,6 +54,7 @@ fn write_image(filename: &str) -> io::Result<()> {
                 radius: 0.5,
                 material: Rc::new(Metal {
                     albedo: Float3::xyz(0.8, 0.6, 0.2),
+                    fuzz:   1.0,
                 }),
             }),
             Box::new(Sphere {
@@ -59,6 +62,7 @@ fn write_image(filename: &str) -> io::Result<()> {
                 radius: 0.5,
                 material: Rc::new(Metal {
                     albedo: Float3::xyz(0.8, 0.8, 0.8),
+                    fuzz:   0.3,
                 }),
             }),
         ],
