@@ -3,13 +3,13 @@ use crate::ray::Ray;
 use crate::float3::*;
 use crate::hitable::*;
 
-pub struct ScatterResult {
-    pub attenuation: Float3,
-    pub scattered:   Option<Ray>,
-}
-
 pub trait Material: std::fmt::Debug {
-    fn scatter(&self, ray_in: &Ray, record: &HitRecord) -> ScatterResult;
+    fn scatter(&self,
+               ray_in:      &Ray,
+               record:      &HitRecord,
+               attenuation: &mut Float3,
+               scattered:   &mut Ray)
+        -> bool;
 }
 
 #[derive(Copy, Clone, Debug, Default)]
@@ -18,12 +18,36 @@ struct Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, _ray_in: &Ray, record: &HitRecord) -> ScatterResult {
+    fn scatter(&self,
+               ray_in:      &Ray,
+               record:      &HitRecord,
+               attenuation: &mut Float3,
+               scattered:   &mut Ray)
+        -> bool
+    {
         let target = record.p + record.normal + Float3::random_in_sphere();
-        let scattered = Some(Ray { origin: record.p, dir: target - record.p });
-        ScatterResult {
-            scattered,
-            attenuation: self.albedo,
-        }
+        *attenuation = self.albedo;
+        *scattered   = Ray { origin: record.p, dir: target - record.p };
+        true
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default)]
+struct Metal {
+    pub albedo: Float3,
+}
+
+impl Material for Metal {
+    fn scatter(&self,
+               ray_in:      &Ray,
+               record:      &HitRecord,
+               attenuation: &mut Float3,
+               scattered:   &mut Ray)
+        -> bool
+    {
+        let reflected = ray_in.dir.unit().reflect(record.normal);
+        *attenuation = self.albedo;
+        *scattered   = Ray { origin: record.p, dir: reflected };
+        (scattered.dir.dot(&record.normal) > 0.0)
     }
 }

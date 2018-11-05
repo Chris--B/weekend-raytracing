@@ -87,6 +87,11 @@ impl Float3 {
 
     // ---- Mathy Operations ----------
 
+    /// Reflects the vector about a surface with normal `n`.
+    pub fn reflect(&self, n: Float3) -> Float3 {
+        *self - 2.0 * self.dot(&n) * n
+    }
+
     pub fn sqrt(&self) -> Float3 {
         Float3 {
             x: self.x.sqrt(),
