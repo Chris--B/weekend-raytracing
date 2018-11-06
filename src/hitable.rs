@@ -30,8 +30,6 @@ pub struct Sphere {
 
 impl Hitable for Sphere {
     fn hit(&self, ray: &Ray, t_min: Float, t_max: Float) -> Option<HitRecord> {
-        assert!(self.radius > 0.0);
-
         let oc = ray.origin - self.center;
         let a = ray.dir.length_sq();
         let b = oc.dot(&ray.dir);
