@@ -32,7 +32,7 @@ fn write_image(filename: &str) -> io::Result<()> {
     // Our camera is dumb and won't fix our aspect ratio.
     // It currently assumes 2:1.
     let ny: u32 = nx / 2;
-    let ns: u32 = 16;
+    let ns: u32 = 200;
 
     let cam = Camera::default();
     let world = HitableList {
@@ -62,6 +62,13 @@ fn write_image(filename: &str) -> io::Result<()> {
             Box::new(Sphere {
                 center: Float3::xyz(-1, 0, -1),
                 radius: 0.5,
+                material: Rc::new(Dielectric {
+                    refraction_index: 1.5,
+                }),
+            }),
+            Box::new(Sphere {
+                center: Float3::xyz(-1, 0, -1),
+                radius: -0.45, // Negative radius makes the above sphere hollow.
                 material: Rc::new(Dielectric {
                     refraction_index: 1.5,
                 }),

@@ -1,5 +1,5 @@
 
-use crate::ray::Ray;
+use crate::ray::*;
 use crate::float3::*;
 use crate::hitable::*;
 
@@ -76,26 +76,34 @@ impl Material for Dielectric {
         // comes from inside or outside of the object.
         let outward_normal:   Float3;
         let refraction_index: Float;
+        let cosine:           Float;
         if ray_in.dir.dot(&record.normal) > 0.0 {
             outward_normal = -record.normal;
             refraction_index = self.refraction_index;
+            cosine = refraction_index * ray_in.dir.unit().dot(&record.normal);
         } else {
             outward_normal = record.normal;
             refraction_index = 1.0 / self.refraction_index;
+            cosine = -ray_in.dir.unit().dot(&record.normal);
         }
 
         // We scatter the ray along one of the refracted or reflected paths.
         // Which one is determined by whether we can refract the incoming
-        // ray against the surface we just hit.
-        // If we can refract, we do.
+        // ray against the surface we just hit and `schlick()`.
         if let Some(refracted) = ray_in.dir.refract(outward_normal,
                                                     refraction_index)
         {
-            *scattered = Ray { origin: record.p, dir: refracted };
-            true
-        } else {
-            *scattered = Ray { origin: record.p, dir: reflected };
-            false
+            // Generally, we *refract* if we can. When we can, we also check our
+            // chances against the schlick function, which repreents the odds of
+            // *reflecting*.
+            if rand::random::<Float>() >= schlick(cosine, refraction_index) {
+                *scattered = Ray { origin: record.p, dir: refracted };
+                return true;
+            }
         }
+
+        // Otherwise, just reflect.
+        *scattered = Ray { origin: record.p, dir: reflected };
+        true
     }
 }
