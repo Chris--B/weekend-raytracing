@@ -32,7 +32,7 @@ fn write_image(filename: &str) -> io::Result<()> {
     // Our camera is dumb and won't fix our aspect ratio.
     // It currently assumes 2:1.
     let ny: u32 = nx / 2;
-    let ns: u32 = 200;
+    let ns: u32 = 24;
 
     let cam = Camera::default();
     let world = HitableList {
@@ -76,7 +76,7 @@ fn write_image(filename: &str) -> io::Result<()> {
         ],
     };
 
-    let count = nx * ny;
+    let count = nx * ny * ns;
     let mut progress = ProgressBar::new(count as u64);
     progress.format("[=> ]");
     progress.set_max_refresh_rate(Some(time::Duration::from_millis(700)));
@@ -114,7 +114,7 @@ fn write_image(filename: &str) -> io::Result<()> {
         ]);
 
         // Hopefully this isn't expensive.
-        progress.inc();
+        progress.add(ns as u64);
     }
     // The progress bar is only updated periodically. If it finished counting
     // before it was due for another refresh, it won't update.
