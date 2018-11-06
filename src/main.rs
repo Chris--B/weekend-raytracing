@@ -4,10 +4,12 @@
 use std::{
     io,
     rc::Rc,
+    time,
 };
 
 use image;
 use rand::prelude::*;
+use pbr::ProgressBar;
 
 mod camera;
 mod float3;
@@ -26,11 +28,11 @@ fn main() {
 }
 
 fn write_image(filename: &str) -> io::Result<()> {
-    let nx = 200;
+    let nx: u32 = 400;
     // Our camera is dumb and won't fix our aspect ratio.
     // It currently assumes 2:1.
-    let ny = nx / 2;
-    let ns = 16;
+    let ny: u32 = nx / 2;
+    let ns: u32 = 16;
 
     let cam = Camera::default();
     let world = HitableList {
@@ -68,6 +70,11 @@ fn write_image(filename: &str) -> io::Result<()> {
         ],
     };
 
+    let count = nx * ny;
+    let mut progress = ProgressBar::new(count as u64);
+    progress.format("[=> ]");
+    progress.set_max_refresh_rate(Some(time::Duration::from_millis(100)));
+
     let mut imgbuf = image::RgbImage::new(nx, ny);
     for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
         // Go through `y` "backwards"
@@ -100,7 +107,13 @@ fn write_image(filename: &str) -> io::Result<()> {
             rgb.z as u8,
         ]);
 
+        // Hopefully this isn't expensive.
+        progress.inc();
     }
+    // The progress bar is only updated periodically. If it finished counting
+    // before it was due for another refresh, it won't update.
+    // We force it to finish here.
+    progress.finish_println("\n");
 
     imgbuf.save(filename)?;
     Ok(())

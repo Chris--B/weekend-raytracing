@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 rand = "^0.5.5"
+pbr = "^1.0"
 
 [dependencies.image]
 version = "^0.20"
