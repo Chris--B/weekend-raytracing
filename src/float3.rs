@@ -87,6 +87,20 @@ impl Float3 {
 
     // ---- Mathy Operations ----------
 
+    /// Refracts the vector about `n` with the refractive indices ratio.
+    /// Sometimes, there are no solutions to Snell's equations, so we cannot
+    /// return any sensible value.
+    pub fn refract(&self, n: Float3, index_ratio: Float) -> Option<Float3> {
+        let unit = self.unit();
+        let dt = unit.dot(&n);
+        let discriminant = 1.0 - index_ratio*index_ratio*(1.0 - dt*dt);
+        if discriminant > 0.0 {
+            Some(index_ratio * (unit - n*dt) - n*discriminant.sqrt())
+        } else {
+            None
+        }
+    }
+
     /// Reflects the vector about a surface with normal `n`.
     pub fn reflect(&self, n: Float3) -> Float3 {
         *self - 2.0 * self.dot(&n) * n
