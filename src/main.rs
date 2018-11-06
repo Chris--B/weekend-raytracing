@@ -23,6 +23,8 @@ use self::hitable::*;
 use self::material::*;
 use self::ray::Ray;
 
+const MAX_RAY_RECURSION: u32 = 50;
+
 fn main() {
     write_image("output.png").unwrap();
 }
@@ -34,7 +36,7 @@ fn write_image(filename: &str) -> io::Result<()> {
     let ny: u32 = nx / 2;
     let ns: u32 = 24;
 
-    let cam = Camera::default();
+    let cam = Camera::new(90.0/*degrees*/, nx as Float / ny as Float /*aspect*/);
     let world = HitableList {
         hitables: vec![
             Box::new(Sphere {
@@ -129,13 +131,15 @@ fn color(ray: &Ray, world: &dyn Hitable, depth: u32) -> Float3 {
     if let Some(hit_record) = world.hit(ray, 1.0e-3, std::f64::MAX as Float) {
         let mut scattered = Ray::default();
         let mut attenuation = Float3::new();
-        if depth < 50 &&
+        if depth < MAX_RAY_RECURSION &&
            hit_record.material.scatter(ray,
                                        &hit_record,
                                        &mut attenuation,
                                        &mut scattered)
         {
             attenuation * color(&scattered, world, depth + 1)
+        } else if depth == MAX_RAY_RECURSION {
+            Float3::xyz(1, 0, 1)
         } else {
             Float3::new()
         }
