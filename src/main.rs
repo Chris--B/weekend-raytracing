@@ -41,7 +41,7 @@ fn write_image(filename: &str) -> io::Result<()> {
                 center: Float3::xyz(0, 0, -1),
                 radius: 0.5,
                 material: Rc::new(Lambertian {
-                    albedo: Float3::xyz(0.8, 0.3, 0.3),
+                    albedo: Float3::xyz(0.1, 0.2, 0.5),
                 }),
             }),
             Box::new(Sphere {
@@ -56,15 +56,14 @@ fn write_image(filename: &str) -> io::Result<()> {
                 radius: 0.5,
                 material: Rc::new(Metal {
                     albedo: Float3::xyz(0.8, 0.6, 0.2),
-                    fuzz:   1.0,
+                    fuzz:   0.0,
                 }),
             }),
             Box::new(Sphere {
                 center: Float3::xyz(-1, 0, -1),
                 radius: 0.5,
-                material: Rc::new(Metal {
-                    albedo: Float3::xyz(0.8, 0.8, 0.8),
-                    fuzz:   0.3,
+                material: Rc::new(Dielectric {
+                    refraction_index: 1.5,
                 }),
             }),
         ],
@@ -73,7 +72,7 @@ fn write_image(filename: &str) -> io::Result<()> {
     let count = nx * ny;
     let mut progress = ProgressBar::new(count as u64);
     progress.format("[=> ]");
-    progress.set_max_refresh_rate(Some(time::Duration::from_millis(100)));
+    progress.set_max_refresh_rate(Some(time::Duration::from_millis(700)));
 
     let mut imgbuf = image::RgbImage::new(nx, ny);
     for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
