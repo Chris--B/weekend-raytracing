@@ -69,7 +69,7 @@ impl Material for Dielectric {
         -> bool
     {
         // Our material doesn't attenutate anything.
-        *attenuation = Float3::xyz(1, 1, 0); // Killing the blue channel!
+        *attenuation = Float3::xyz(1, 1, 1);
         let reflected = ray_in.dir.reflect(record.normal);
 
         // We handle refraction differently depending on whether the ray
