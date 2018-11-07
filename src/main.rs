@@ -8,8 +8,8 @@ use std::{
 };
 
 use image;
-use rand::prelude::*;
 use pbr::ProgressBar;
+use rand::prelude::*;
 
 mod camera;
 mod float3;
@@ -36,7 +36,10 @@ fn write_image(filename: &str) -> io::Result<()> {
     let ny: u32 = nx / 2;
     let ns: u32 = 24;
 
-    let cam = Camera::new(90.0/*degrees*/, nx as Float / ny as Float /*aspect*/);
+    let cam = Camera::new(
+        90.0,                      /*degrees*/
+        nx as Float / ny as Float, /*aspect*/
+    );
     let world = HitableList {
         hitables: vec![
             Box::new(Sphere {

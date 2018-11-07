@@ -1,4 +1,3 @@
-
 use std::rc::Rc;
 
 use crate::float3::*;
@@ -33,8 +32,8 @@ impl Hitable for Sphere {
         let oc = ray.origin - self.center;
         let a = ray.dir.length_sq();
         let b = oc.dot(&ray.dir);
-        let c = oc.length_sq() - self.radius*self.radius;
-        let discriminant = b*b - a*c;
+        let c = oc.length_sq() - self.radius * self.radius;
+        let discriminant = b * b - a * c;
 
         // There are three cases to consider here:
         //      1. discriminant < 0  => There are zero real solutions, no hit.
@@ -46,7 +45,7 @@ impl Hitable for Sphere {
             // Check that the first hit is within bounds.
             let t = (-b - discriminant.sqrt()) / a;
             if t_min < t && t < t_max {
-                let p      = ray.at_t(t);
+                let p = ray.at_t(t);
                 // Make sure `normal` stays normal.
                 let normal = (p - self.center) / self.radius;
                 let material = self.material.clone();
@@ -55,7 +54,7 @@ impl Hitable for Sphere {
             // It wasn't - check if the second one is.
             let t = (-b + discriminant.sqrt()) / a;
             if t_min < t && t < t_max {
-                let p      = ray.at_t(t);
+                let p = ray.at_t(t);
                 // Make sure `normal` stays normal.
                 let normal = (p - self.center) / self.radius;
                 let material = self.material.clone();

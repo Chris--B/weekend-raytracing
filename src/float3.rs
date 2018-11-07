@@ -18,7 +18,6 @@ pub struct Float3 {
 }
 
 impl Float3 {
-
     // ---- Constructors ----------
 
     pub const fn new() -> Float3 {
@@ -74,15 +73,11 @@ impl Float3 {
     // ---- Access/Translations ----------
 
     pub fn as_slice(&self) -> &[Float; 3] {
-        unsafe {
-            mem::transmute(&self.x)
-        }
+        unsafe { mem::transmute(&self.x) }
     }
 
     pub fn as_mut_slice(&mut self) -> &mut [Float; 3] {
-        unsafe {
-            mem::transmute(&mut self.x)
-        }
+        unsafe { mem::transmute(&mut self.x) }
     }
 
     // ---- Mathy Operations ----------
@@ -93,9 +88,9 @@ impl Float3 {
     pub fn refract(&self, n: Float3, index_ratio: Float) -> Option<Float3> {
         let unit = self.unit();
         let dt = unit.dot(&n);
-        let discriminant = 1.0 - index_ratio*index_ratio*(1.0 - dt*dt);
+        let discriminant = 1.0 - index_ratio * index_ratio * (1.0 - dt * dt);
         if discriminant > 0.0 {
-            Some(index_ratio * (unit - n*dt) - n*discriminant.sqrt())
+            Some(index_ratio * (unit - n * dt) - n * discriminant.sqrt())
         } else {
             None
         }
@@ -195,7 +190,7 @@ impl ops::Neg for Float3 {
         Float3 {
             x: -self.x,
             y: -self.y,
-            z: -self.z
+            z: -self.z,
         }
     }
 }
@@ -253,7 +248,7 @@ macro_rules! impl_scalar_add_for {
                 self.z += rhs as Float;
             }
         }
-    }
+    };
 }
 
 macro_rules! impl_scalar_mul_for {
@@ -290,7 +285,7 @@ macro_rules! impl_scalar_mul_for {
                 self.z *= rhs as Float;
             }
         }
-    }
+    };
 }
 
 macro_rules! impl_scalar_div_for {
@@ -327,7 +322,7 @@ macro_rules! impl_scalar_div_for {
                 self.z /= rhs as Float;
             }
         }
-    }
+    };
 }
 
 // Scalar '+' overloads
