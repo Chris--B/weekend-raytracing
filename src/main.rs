@@ -30,16 +30,17 @@ fn main() {
 }
 
 fn write_image(filename: &str) -> io::Result<()> {
-    let nx: u32 = 400;
-    let ny: u32 = 400;
-    let ns: u32 = 24;
+    let nx: u32 = 300;
+    let ny: u32 = 300;
+    let ns: u32 = 512;
 
     let cam = Camera::new(CameraInfo {
-        lookfrom: Float3::xyz(-2, 2, 1),
-        lookat:   Float3::xyz(0, 0, -1),
-        up:       Float3::xyz(0, 1, 0),
-        vfov:     90.0,
-        aspect:   nx as Float / ny as Float,
+        lookfrom:  Float3::xyz(3, 3, 2),
+        lookat:    Float3::xyz(0, 0, -1),
+        up:        Float3::xyz(0, 1, 0),
+        vfov:      60.0,
+        aspect:    nx as Float / ny as Float,
+        aperature: 2.0,
     });
     let world = HitableList {
         hitables: vec![

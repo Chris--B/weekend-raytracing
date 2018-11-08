@@ -60,10 +60,24 @@ impl Float3 {
         // run this loop 18 times without finding a point.
         // ಠ_ಠ
         loop {
-            let x: Float = 2.0 * random::<Float>() - 1.0;
-            let y: Float = 2.0 * random::<Float>() - 1.0;
-            let z: Float = 2.0 * random::<Float>() - 1.0;
+            let x: Float = random::<Float>().abs();
+            let y: Float = random::<Float>().abs();
+            let z: Float = random::<Float>().abs();
             let p = Float3 { x, y, z };
+            if p.length_sq() < 1.0 {
+                return p;
+            }
+        }
+    }
+
+    /// Returns a random point uniformly from the unit disk.
+    /// Disks are 2D, so the Z component is always zero.
+    pub fn random_in_disk() -> Float3 {
+        // Oh good, more of this.
+        loop {
+            let x = random::<Float>().abs();
+            let y = random::<Float>().abs();
+            let p = Float3::xyz(x, y, 0.0);
             if p.length_sq() < 1.0 {
                 return p;
             }
