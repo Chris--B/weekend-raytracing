@@ -31,16 +31,14 @@ fn main() {
 
 fn write_image(filename: &str) -> io::Result<()> {
     let nx: u32 = 400;
-    // Our camera is dumb and won't fix our aspect ratio.
-    // It currently assumes 2:1.
-    let ny: u32 = nx / 2;
+    let ny: u32 = 400;
     let ns: u32 = 24;
 
     let cam = Camera::new(CameraInfo {
         lookfrom: Float3::xyz(-2, 2, 1),
         lookat:   Float3::xyz(0, 0, -1),
         up:       Float3::xyz(0, 1, 0),
-        vfov:     60.0,
+        vfov:     90.0,
         aspect:   nx as Float / ny as Float,
     });
     let world = HitableList {
