@@ -40,48 +40,9 @@ fn write_image(filename: &str) -> io::Result<()> {
         up:        Float3::xyz(0, 1, 0),
         vfov:      60.0,
         aspect:    nx as Float / ny as Float,
-        aperature: 2.0,
+        aperature: 0.0,
     });
-    let world = HitableList {
-        hitables: vec![
-            Box::new(Sphere {
-                center: Float3::xyz(0, 0, -1),
-                radius: 0.5,
-                material: Rc::new(Lambertian {
-                    albedo: Float3::xyz(0.1, 0.2, 0.5),
-                }),
-            }),
-            Box::new(Sphere {
-                center: Float3::xyz(0.0, -100.5, -1.0),
-                radius: 100.0,
-                material: Rc::new(Lambertian {
-                    albedo: Float3::xyz(0.8, 0.8, 0.0),
-                }),
-            }),
-            Box::new(Sphere {
-                center: Float3::xyz(1, 0, -1),
-                radius: 0.5,
-                material: Rc::new(Metal {
-                    albedo: Float3::xyz(0.8, 0.6, 0.2),
-                    fuzz:   0.0,
-                }),
-            }),
-            Box::new(Sphere {
-                center: Float3::xyz(-1, 0, -1),
-                radius: 0.5,
-                material: Rc::new(Dielectric {
-                    refraction_index: 1.5,
-                }),
-            }),
-            Box::new(Sphere {
-                center: Float3::xyz(-1, 0, -1),
-                radius: -0.45, // Negative radius makes the above sphere hollow.
-                material: Rc::new(Dielectric {
-                    refraction_index: 1.5,
-                }),
-            }),
-        ],
-    };
+    let world = make_green_scene();
 
     let count = nx * ny * ns;
     let mut progress = ProgressBar::new(count as u64);
@@ -156,5 +117,48 @@ fn color(ray: &Ray, world: &dyn Hitable, depth: u32) -> Float3 {
 
         let t = 0.5 * (1.0 + ray.dir.unit().y);
         Float3::lerp(t, white, blue)
+    }
+}
+
+fn make_green_scene() -> HitableList {
+    HitableList {
+        hitables: vec![
+            Box::new(Sphere {
+                center: Float3::xyz(0, 0, -1),
+                radius: 0.5,
+                material: Rc::new(Lambertian {
+                    albedo: Float3::xyz(0.1, 0.2, 0.5),
+                }),
+            }),
+            Box::new(Sphere {
+                center: Float3::xyz(0.0, -100.5, -1.0),
+                radius: 100.0,
+                material: Rc::new(Lambertian {
+                    albedo: Float3::xyz(0.8, 0.8, 0.0),
+                }),
+            }),
+            Box::new(Sphere {
+                center: Float3::xyz(1, 0, -1),
+                radius: 0.5,
+                material: Rc::new(Metal {
+                    albedo: Float3::xyz(0.8, 0.6, 0.2),
+                    fuzz:   0.0,
+                }),
+            }),
+            Box::new(Sphere {
+                center: Float3::xyz(-1, 0, -1),
+                radius: 0.5,
+                material: Rc::new(Dielectric {
+                    refraction_index: 1.5,
+                }),
+            }),
+            Box::new(Sphere {
+                center: Float3::xyz(-1, 0, -1),
+                radius: -0.45, // Negative radius makes the above sphere hollow.
+                material: Rc::new(Dielectric {
+                    refraction_index: 1.5,
+                }),
+            }),
+        ],
     }
 }
