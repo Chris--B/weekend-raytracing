@@ -40,7 +40,7 @@ fn write_image(filename: &str) -> io::Result<()> {
         lookfrom: Float3::xyz(-2, 2, 1),
         lookat:   Float3::xyz(0, 0, -1),
         up:       Float3::xyz(0, 1, 0),
-        vfov:     90.0,
+        vfov:     60.0,
         aspect:   nx as Float / ny as Float,
     });
     let world = HitableList {
