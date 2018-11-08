@@ -32,17 +32,17 @@ fn main() {
 fn write_image(filename: &str) -> io::Result<()> {
     let nx: u32 = 300;
     let ny: u32 = 300;
-    let ns: u32 = 512;
+    let ns: u32 = 8;
 
     let cam = Camera::new(CameraInfo {
         lookfrom:  Float3::xyz(3, 3, 2),
         lookat:    Float3::xyz(0, 0, -1),
         up:        Float3::xyz(0, 1, 0),
-        vfov:      60.0,
+        vfov:      90.0,
         aspect:    nx as Float / ny as Float,
         aperature: 0.0,
     });
-    let world = make_green_scene();
+    let world = make_cover_scene();
 
     let count = nx * ny * ns;
     let mut progress = ProgressBar::new(count as u64);
@@ -161,4 +161,85 @@ fn make_green_scene() -> HitableList {
             }),
         ],
     }
+}
+
+fn make_cover_scene() -> HitableList {
+    let ground: Box<dyn Hitable> = Box::new(Sphere {
+        center: Float3::xyz(0, -1000, 0),
+        radius: 1000.0,
+        material: Rc::new(Lambertian {
+            albedo: Float3::xxx(0.5),
+        })
+    });
+
+    let mut spheres = vec![];
+    spheres.push(ground);
+
+    // This material can be reused, since its parameters don't change
+    // between spheres.
+    let dielectric = Rc::new(Dielectric {
+        refraction_index: 1.5,
+    });
+
+    let point = Float3::xyz(4., 0.2, 0.);
+    let radius = 0.2;
+
+    for a in -11..11 {
+        let a = a as Float;
+        for b in -11..11 {
+            let b = b as Float;
+
+            let center = Float3 {
+                x: a + 0.9 * random::<Float>(),
+                y: 0.2,
+                z: b + 0.9 * random::<Float>(),
+            };
+
+            if (center - point).length_sq() > (0.9*0.9) {
+                let sphere: Box<dyn Hitable>;
+                sphere = match random::<Float>() {
+                    // Diffuse
+                    prob if prob < 0.8 => {
+                        Box::new(Sphere {
+                            center,
+                            radius,
+                            material: Rc::new(Lambertian {
+                                albedo: Float3 {
+                                    x: random::<Float>() * random::<Float>(),
+                                    y: random::<Float>() * random::<Float>(),
+                                    z: random::<Float>() * random::<Float>(),
+                                },
+                            }),
+                        })
+                    },
+                    // Metal
+                    prob if prob < 0.95 => {
+                        Box::new(Sphere {
+                            center,
+                            radius,
+                            material: Rc::new(Metal {
+                                albedo: Float3 {
+                                    x: random::<Float>().abs(),
+                                    y: random::<Float>().abs(),
+                                    z: random::<Float>().abs(),
+                                },
+                                fuzz: 0.5 * random::<Float>()
+                            }),
+                        })
+                    },
+                    // Glass
+                    _ => {
+                        Box::new(Sphere {
+                            center,
+                            radius,
+                            material: dielectric.clone(),
+                        })
+                    },
+                };
+                spheres.push(sphere);
+            }
+        }
+    }
+
+    HitableList { hitables: spheres }
 }
