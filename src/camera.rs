@@ -11,24 +11,40 @@ pub struct Camera {
     pub vertical:   Float3,
 }
 
+#[derive(Debug)]
+pub struct CameraInfo {
+    pub lookfrom: Float3,
+    pub lookat:   Float3,
+    pub up:       Float3,
+    pub vfov:     Float,
+    pub aspect:   Float,
+}
+
 impl Camera {
-    pub fn new(vfov: Float, aspect: Float) -> Camera {
-        let theta = vfov * std::f64::consts::PI / 180.0;
-        let half_height = (theta / 2.0).tan();
-        let half_width = aspect * half_height;
+    pub fn new(info: CameraInfo) -> Camera {
+        let theta:  Float = info.vfov * std::f64::consts::PI / 180.0;
+        let scale:  Float = (info.lookfrom - info.lookat).length();
+        let height: Float = scale * (theta / 2.0).tan();
+        let width:  Float = info.aspect * height;
+
+        // Our orthonormal basis
+        let w: Float3 = (info.lookfrom - info.lookat).unit();
+        let u: Float3 = info.up.cross(&w).unit();
+        let v: Float3 = w.cross(&u);
+
         Camera {
-            lower_left: Float3::xyz(-half_width, -half_height, -1.0),
-            horizontal: Float3::xyz(2.0*half_width, 0.0, 0.0),
-            vertical:   Float3::xyz(0.0, 2.0*half_height, 0.0),
-            origin:     Float3::xyz(0, 0, 0),
+            origin:     info.lookfrom,
+            horizontal: width * u,
+            vertical:   height * v,
+            lower_left: info.lookat - 0.5 * (width * u + height * v),
         }
     }
 
-    pub fn get_ray(&self, u: Float, v: Float) -> Ray {
-        Ray {
-            origin: self.origin,
-            dir:    self.lower_left + u*self.horizontal + v*self.vertical,
-        }
+    pub fn get_ray(&self, s: Float, t: Float) -> Ray {
+        let origin = self.origin;
+        let dir = (self.lower_left - self.origin) +
+                  (s*self.horizontal + t*self.vertical);
+        Ray { origin, dir }
     }
 }
 

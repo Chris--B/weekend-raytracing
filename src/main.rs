@@ -17,7 +17,7 @@ mod hitable;
 mod material;
 mod ray;
 
-use self::camera::Camera;
+use self::camera::*;
 use self::float3::*;
 use self::hitable::*;
 use self::material::*;
@@ -36,10 +36,13 @@ fn write_image(filename: &str) -> io::Result<()> {
     let ny: u32 = nx / 2;
     let ns: u32 = 24;
 
-    let cam = Camera::new(
-        90.0,                      /*degrees*/
-        nx as Float / ny as Float, /*aspect*/
-    );
+    let cam = Camera::new(CameraInfo {
+        lookfrom: Float3::xyz(-2, 2, 1),
+        lookat:   Float3::xyz(0, 0, -1),
+        up:       Float3::xyz(0, 1, 0),
+        vfov:     90.0,
+        aspect:   nx as Float / ny as Float,
+    });
     let world = HitableList {
         hitables: vec![
             Box::new(Sphere {
