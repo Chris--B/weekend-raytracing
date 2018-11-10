@@ -26,7 +26,7 @@ impl Float3 {
         }
     }
 
-    pub fn xyz<F: Into<Float>>(x: F, y: F, z: F) -> Float3 {
+    pub fn xyz(x: Float, y: Float, z: Float) -> Float3 {
         Float3 {
             x: x.into(),
             y: y.into(),
@@ -34,7 +34,7 @@ impl Float3 {
         }
     }
 
-    pub fn xy<F: Into<Float>>(x: F, y: F) -> Float3 {
+    pub fn xy(x: Float, y: Float) -> Float3 {
         Float3 {
             x: x.into(),
             y: y.into(),
@@ -42,7 +42,7 @@ impl Float3 {
         }
     }
 
-    pub fn xxx<F: Into<Float>>(x: F) -> Float3 {
+    pub fn xxx(x: Float) -> Float3 {
         let x = x.into();
         Float3 {
             x: x,
@@ -370,7 +370,7 @@ mod t {
 
     #[test]
     fn check_as_slice() {
-        let a = Float3::xyz(1, 2, 3);
+        let a = Float3::xyz(1., 2., 3.);
 
         let slice: &[Float; 3] = a.as_slice();
         // We used mem::transmute on a *reference*,
@@ -381,7 +381,7 @@ mod t {
 
     #[test]
     fn check_as_mut_slice() {
-        let mut a = Float3::xyz(1, 2, 3);
+        let mut a = Float3::xyz(1., 2., 3.);
 
         let slice: &mut [Float; 3] = a.as_mut_slice();
         // We used mem::transmute on a *reference*,
@@ -394,46 +394,46 @@ mod t {
         slice[0] = -1.0;
         slice[1] = -2.0;
         slice[2] = -3.0;
-        assert_eq!(a, Float3::xyz(-1, -2, -3));
+        assert_eq!(a, Float3::xyz(-1., -2., -3.));
     }
 
     #[test]
     fn check_arithmatic() {
-        let mut a = Float3::xyz(1, 2, 3);
+        let mut a = Float3::xyz(1., 2., 3.);
 
         // Scalar Mul and Div
         a = 5 * a;
-        assert_eq!(a, Float3::xyz(5, 10, 15));
+        assert_eq!(a, Float3::xyz(5., 10., 15.));
         a = a * 5u8;
-        assert_eq!(a, Float3::xyz(25, 50, 75));
+        assert_eq!(a, Float3::xyz(25., 50., 75.));
         a = a / 5isize;
-        assert_eq!(a, Float3::xyz(5, 10, 15));
+        assert_eq!(a, Float3::xyz(5., 10., 15.));
         let unused: Float3 = 5 / a;
         assert_eq!(unused, Float3::xyz(5.0 / 5.0, 5.0 / 10.0, 5.0 / 15.0));
 
         // Scalar Mul/Div Assign
         a *= 2i16;
-        assert_eq!(a, Float3::xyz(10, 20, 30));
+        assert_eq!(a, Float3::xyz(10., 20., 30.));
         a /= 10u16;
         assert_eq!(a, Float3::xyz(1.0, 2.0, 3.0));
         // Note: `a` has now returned to its original value.
 
         // Vector Add
-        assert_eq!(a + Float3::xxx(10), Float3::xyz(11, 12, 13));
-        a += Float3::xxx(10);
-        assert_eq!(a, Float3::xyz(11, 12, 13));
+        assert_eq!(a + Float3::xxx(10.), Float3::xyz(11., 12., 13.));
+        a += Float3::xxx(10.);
+        assert_eq!(a, Float3::xyz(11., 12., 13.));
 
         // Vector Sub
-        assert_eq!(a - Float3::xxx(10), Float3::xyz(1, 2, 3));
-        a -= Float3::xxx(10);
-        assert_eq!(a, Float3::xyz(1, 2, 3));
+        assert_eq!(a - Float3::xxx(10.), Float3::xyz(1., 2., 3.));
+        a -= Float3::xxx(10.);
+        assert_eq!(a, Float3::xyz(1., 2., 3.));
     }
 
     #[test]
     fn check_mathy() {
-        let i = Float3::xyz(1, 0, 0);
-        let j = Float3::xyz(0, 1, 0);
-        let k = Float3::xyz(0, 0, 1);
+        let i = Float3::xyz(1., 0., 0.);
+        let j = Float3::xyz(0., 1., 0.);
+        let k = Float3::xyz(0., 0., 1.);
 
         // The three axes "cross" in a loop: ijk, jki, kij, etc.
         // The cross of the first two always equals the third.
@@ -447,8 +447,8 @@ mod t {
         assert_eq!(i.cross(&k), -j);
 
         // Just for good measure, here's an example from "Paul's Notes":
-        let a = Float3::xyz(2, 1, -1);
-        let b = Float3::xyz(-3, 4, 1);
+        let a = Float3::xyz(2., 1., -1.);
+        let b = Float3::xyz(-3., 4., 1.);
 
         // Same extra sanity checks
         // Anything crossed with itself is zero.
@@ -456,7 +456,7 @@ mod t {
         assert_eq!(b.cross(&b), Float3::xxx(0.0));
 
         // Solutions from Paul's Notes.
-        assert_eq!(a.cross(&b), Float3::xyz(5, 1, 11));
-        assert_eq!(b.cross(&a), Float3::xyz(-5, -1, -11));
+        assert_eq!(a.cross(&b), Float3::xyz(5., 1., 11.));
+        assert_eq!(b.cross(&a), Float3::xyz(-5., -1., -11.));
     }
 }

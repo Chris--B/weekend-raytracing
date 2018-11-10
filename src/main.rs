@@ -53,8 +53,8 @@ fn write_image(filename: &str) -> io::Result<()> {
 
     let cam = Camera::new(CameraInfo {
         lookfrom:   Float3::xyz(13., 2., 3.),
-        lookat:     Float3::xyz(0, 0, 0),
-        up:         Float3::xyz(0, 1, 0),
+        lookat:     Float3::xyz(0., 0., 0.),
+        up:         Float3::xyz(0., 1., 0.),
         vfov:       20.0,
         aspect:     nx as Float / ny as Float,
         aperature:  0.1,
@@ -134,14 +134,14 @@ fn color(ray: &Ray, world: &dyn Hitable, depth: u32) -> Float3 {
         {
             attenuation * color(&scattered, world, depth + 1)
         } else if depth == MAX_RAY_RECURSION {
-            Float3::xyz(1, 0, 1)
+            Float3::xyz(1., 0., 1.)
         } else {
             Float3::new()
         }
     } else {
         // Linearly blend white and blue, depending on the "up" or
         // "downn"ness of the y coordinate.
-        let white = Float3::xyz(1, 1, 1);
+        let white = Float3::xyz(1., 1., 1.);
         let blue = Float3::xyz(0.5, 0.7, 1.0);
 
         let t = 0.5 * (1.0 + ray.dir.unit().y);
@@ -153,7 +153,7 @@ fn make_green_scene() -> HitableList {
     HitableList {
         hitables: vec![
             Box::new(Sphere {
-                center: Float3::xyz(0, 0, -1),
+                center: Float3::xyz(0., 0., -1.),
                 radius: 0.5,
                 material: Rc::new(Lambertian {
                     albedo: Float3::xyz(0.1, 0.2, 0.5),
@@ -167,7 +167,7 @@ fn make_green_scene() -> HitableList {
                 }),
             }),
             Box::new(Sphere {
-                center: Float3::xyz(1, 0, -1),
+                center: Float3::xyz(1., 0., -1.),
                 radius: 0.5,
                 material: Rc::new(Metal {
                     albedo: Float3::xyz(0.8, 0.6, 0.2),
@@ -175,14 +175,14 @@ fn make_green_scene() -> HitableList {
                 }),
             }),
             Box::new(Sphere {
-                center: Float3::xyz(-1, 0, -1),
+                center: Float3::xyz(-1., 0., -1.),
                 radius: 0.5,
                 material: Rc::new(Dielectric {
                     refraction_index: 1.5,
                 }),
             }),
             Box::new(Sphere {
-                center: Float3::xyz(-1, 0, -1),
+                center: Float3::xyz(-1., 0., -1.),
                 radius: -0.45, // Negative radius makes the above sphere hollow.
                 material: Rc::new(Dielectric {
                     refraction_index: 1.5,
@@ -195,7 +195,7 @@ fn make_green_scene() -> HitableList {
 fn make_cover_scene() -> HitableList {
     // A giant, darkish colored sphere to act as the floor.
     let ground: Box<dyn Hitable> = Box::new(Sphere {
-        center: Float3::xyz(0, -1000, 0),
+        center: Float3::xyz(0., -1000., 0.),
         radius: 1000.0,
         material: Rc::new(Lambertian {
             albedo: Float3::xxx(0.5),
