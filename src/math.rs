@@ -1,3 +1,4 @@
+use std::f64::consts;
 use crate::prelude::*;
 
 /// When you look at a window at a steep angle, it becomes a mirror.
@@ -10,18 +11,16 @@ pub fn schlick(cosine: Float, refraction_index: Float) -> Float {
 
 /// Returns a random point uniformly from the unit sphere,
 /// centered at the origin.
+/// See for details: https://math.stackexchange.com/a/822863
 pub fn random_in_sphere() -> Float3 {
-    // This is a bad way to do this. With our 200x100 image, we reliably
-    // run this loop 18 times without finding a point.
-    // ಠ_ಠ
-    loop {
-        let x: Float = random_sfloat();
-        let y: Float = random_sfloat();
-        let z: Float = random_sfloat();
-        let p = Float3 { x, y, z };
-        if p.length_sq() < 1.0 {
-            return p;
-        }
+    let λ = random_float();
+    let u = random_sfloat();
+    let φ =  2.0 * consts::PI * random_float();
+
+    Float3 {
+        x: λ.powf(3.0) * (1.0 - u* u).sqrt() * φ.cos(),
+        y: λ.powf(3.0) * (1.0 - u* u).sqrt() * φ.sin(),
+        z: λ.powf(3.0) * u,
     }
 }
 

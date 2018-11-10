@@ -1,3 +1,5 @@
+#![feature(non_ascii_idents)]
+
 use std::{
     io,
     rc::Rc,
