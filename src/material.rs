@@ -1,5 +1,6 @@
 use crate::float3::*;
 use crate::hitable::*;
+use crate::math;
 use crate::ray::*;
 
 pub trait Material: std::fmt::Debug {
@@ -24,7 +25,7 @@ impl Material for Lambertian {
                scattered:   &mut Ray)
         -> bool
     {
-        let target = record.p + record.normal + Float3::random_in_sphere();
+        let target = record.p + record.normal + math::random_in_sphere();
         *attenuation = self.albedo;
         *scattered = Ray {
             origin: record.p,
@@ -50,7 +51,7 @@ impl Material for Metal {
     {
         let reflected = ray_in.dir.unit().reflect(record.normal);
         *attenuation = self.albedo;
-        let dir = reflected + self.fuzz * Float3::random_in_sphere();
+        let dir = reflected + self.fuzz * math::random_in_sphere();
         *scattered = Ray {
             origin: record.p,
             dir,
@@ -101,7 +102,8 @@ impl Material for Dielectric {
             // Generally, we *refract* if we can. When we can, we also check our
             // chances against the schlick function, which repreents the odds of
             // *reflecting*.
-            if rand::random::<Float>() >= schlick(cosine, refraction_index) {
+            let prob = math::random_sfloat(); // Can this be negative?
+            if prob >= math::schlick(cosine, refraction_index) {
                 *scattered = Ray {
                     origin: record.p,
                     dir:    refracted,

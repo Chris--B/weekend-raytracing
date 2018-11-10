@@ -1,7 +1,8 @@
 use std::f64::consts;
 
+use crate::math;
 use crate::float3::*;
-use crate::ray::Ray;
+use crate::ray::*;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Camera {
@@ -72,9 +73,9 @@ impl Camera {
     pub fn get_ray(&self, s: Float, t: Float) -> Ray {
         let origin = self.origin;
 
-        // Calling `Float3::random_in_disk` is expensive, so skip it if we can
+        // Calling `math::random_in_disk` is expensive, so skip it if we can
         let disk = if self.lens_radius > 0.05 {
-            self.lens_radius * Float3::random_in_disk()
+            self.lens_radius * math::random_in_disk()
         } else {
             Float3::new()
         };

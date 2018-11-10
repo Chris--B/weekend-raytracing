@@ -6,18 +6,19 @@ use std::{
 
 use image;
 use pbr::ProgressBar;
-use rand::prelude::*;
 
 mod camera;
 mod float3;
 mod hitable;
 mod material;
+mod math;
 mod ray;
 
 use self::camera::*;
 use self::float3::*;
 use self::hitable::*;
 use self::material::*;
+use self::math::*;
 use self::ray::Ray;
 
 const MAX_RAY_RECURSION: u32 = 50;
@@ -54,8 +55,8 @@ fn write_image(filename: &str) -> io::Result<()> {
         let mut rgb = Float3::default();
         // MSAA
         for sample in 1..(ns+1) {
-            let u = (x as Float + random::<Float>()) / nx as Float;
-            let v = (y as Float + random::<Float>()) / ny as Float;
+            let u = (x as Float + random_sfloat()) / nx as Float;
+            let v = (y as Float + random_sfloat()) / ny as Float;
             let ray = cam.get_ray(u, v);
 
             rgb += color(&ray, &world, 0);
@@ -63,13 +64,12 @@ fn write_image(filename: &str) -> io::Result<()> {
             // Sanity checks - no pixels are allowed outside of the range [0, 1]
             // Since we accumulate `ns` samples, each within that range,
             // the valid range at any point in the process is [0, sample].
-            // TODO: Make sure these don't slow us down.
-            assert!(0.0 <= rgb.x && rgb.x <= sample as Float,
-                    "({}, {}) #{} rgb = {:?}", x, y, sample, rgb / sample);
-            assert!(0.0 <= rgb.y && rgb.y <= sample as Float,
-                    "({}, {}) #{} rgb = {:?}", x, y, sample, rgb / sample);
-            assert!(0.0 <= rgb.z && rgb.z <= sample as Float,
-                    "({}, {}) #{} rgb = {:?}", x, y, sample, rgb / sample);
+            debug_assert!(0.0 <= rgb.x && rgb.x <= sample as Float,
+                          "({}, {}) #{} rgb = {:?}", x, y, sample, rgb / sample);
+            debug_assert!(0.0 <= rgb.y && rgb.y <= sample as Float,
+                          "({}, {}) #{} rgb = {:?}", x, y, sample, rgb / sample);
+            debug_assert!(0.0 <= rgb.z && rgb.z <= sample as Float,
+                          "({}, {}) #{} rgb = {:?}", x, y, sample, rgb / sample);
         }
         // Average mutlisamples
         rgb /= ns;
@@ -194,14 +194,14 @@ fn make_cover_scene() -> HitableList {
             let b = b as Float;
 
             let center = Float3 {
-                x: a + 0.9 * random::<Float>(),
+                x: a + 0.8 * random_sfloat(),
                 y: 0.2,
-                z: b + 0.9 * random::<Float>(),
+                z: b + 0.8 * random_sfloat(),
             };
 
             if (center - point).length_sq() > (0.9*0.9) {
                 let sphere: Box<dyn Hitable>;
-                sphere = match random::<Float>() {
+                sphere = match random_sfloat() {
                     // Diffuse
                     prob if prob < 0.8 => {
                         Box::new(Sphere {
@@ -209,9 +209,9 @@ fn make_cover_scene() -> HitableList {
                             radius,
                             material: Rc::new(Lambertian {
                                 albedo: Float3 {
-                                    x: random::<Float>() * random::<Float>(),
-                                    y: random::<Float>() * random::<Float>(),
-                                    z: random::<Float>() * random::<Float>(),
+                                    x: random_float() * random_float(),
+                                    y: random_float() * random_float(),
+                                    z: random_float() * random_float(),
                                 },
                             }),
                         })
@@ -223,11 +223,11 @@ fn make_cover_scene() -> HitableList {
                             radius,
                             material: Rc::new(Metal {
                                 albedo: Float3 {
-                                    x: random::<Float>().abs(),
-                                    y: random::<Float>().abs(),
-                                    z: random::<Float>().abs(),
+                                    x: random_float(),
+                                    y: random_float(),
+                                    z: random_float(),
                                 },
-                                fuzz: 0.5 * random::<Float>()
+                                fuzz: 0.5 * random_float(),
                             }),
                         })
                     },
