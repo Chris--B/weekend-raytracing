@@ -1,8 +1,6 @@
 use std::rc::Rc;
 
-use crate::float3::*;
-use crate::material::Material;
-use crate::ray::Ray;
+use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct HitRecord {

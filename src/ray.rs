@@ -1,5 +1,4 @@
-
-use crate::float3::*;
+use crate::prelude::*;
 
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Ray {

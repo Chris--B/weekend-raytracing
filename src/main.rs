@@ -14,12 +14,12 @@ mod material;
 mod math;
 mod ray;
 
-use self::camera::*;
-use self::float3::*;
+pub mod prelude;
+
+use self::prelude::*;
 use self::hitable::*;
 use self::material::*;
-use self::math::*;
-use self::ray::Ray;
+use self::camera::*;
 
 const MAX_RAY_RECURSION: u32 = 50;
 

@@ -1,5 +1,4 @@
-
-use crate::float3::*;
+use crate::prelude::*;
 
 /// When you look at a window at a steep angle, it becomes a mirror.
 /// This is a simple approximation to that by Christophe Schlick.
