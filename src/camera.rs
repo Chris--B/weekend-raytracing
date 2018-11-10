@@ -1,8 +1,13 @@
+use std::f64::consts;
+
 use crate::float3::*;
 use crate::ray::Ray;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Camera {
+    pub w:           Float3,
+    pub u:           Float3,
+    pub v:           Float3,
     pub origin:      Float3,
     pub lower_left:  Float3,
     pub horizontal:  Float3,
@@ -18,6 +23,7 @@ pub struct CameraInfo {
     pub vfov:       Float,
     pub aspect:     Float,
     pub aperature:  Float,
+    pub focus_dist: Float,
 }
 
 impl Camera {
@@ -26,17 +32,14 @@ impl Camera {
         // Ultimately, we want a plane and an origin. We'll fire rays from the
         // origin at points in the plane and then into the scene.
 
-        let lens_radius = info.aperature / 2.0;
-
         // We determine the height of the plane using the vertical field of view
         // passed in through `info`.
         // To keep the top and bottom lines of the plane at the same visual
         // angle, we scale its height by the distance away that it is.
         // Width then follows from `info.aspect`.
-        let theta:      Float = info.vfov * std::f64::consts::PI / 180.0;
-        let focal_dist: Float = (info.lookfrom - info.lookat).length();
-        let height:     Float = focal_dist * (theta / 2.0).tan();
-        let width:      Float = info.aspect * height;
+        let theta:       Float = info.vfov * consts::PI / 180.0;
+        let half_height: Float = (theta / 2.0).tan();
+        let half_width:  Float = info.aspect * half_height;
 
         // We also need to construct three directions to describe the plane:
         //      w: The direction from the origin to the plane.
@@ -50,24 +53,27 @@ impl Camera {
         // Ultimately, this is just an orthonormal basis.
         let w: Float3 = (info.lookfrom - info.lookat).unit();
         let u: Float3 = info.up.cross(&w).unit();
-        let v: Float3 = w.cross(&u); // Note: Don't need to `.unit()`!
+        let v: Float3 = w.cross(&u); // Note: Don't need to `.unit()`
 
+        let CameraInfo { lookfrom, focus_dist, ..} = info;
         Camera {
-            origin:      info.lookfrom,
-            horizontal:  width * u,
-            vertical:    height * v,
-            // `info.lookat` bisects the main plane exactly in its center,
-            // so width and height are halved.
-            lower_left:  info.lookat - 0.5 * (width * u + height * v),
-            lens_radius,
+            u,
+            v,
+            w,
+            origin:      lookfrom,
+            horizontal:  2.0 * focus_dist * half_width * u,
+            vertical:    2.0 * focus_dist * half_height * v,
+            lower_left:  lookfrom
+                         - focus_dist * (half_width * u + half_height * v + w),
+            lens_radius: info.aperature / 2.0,
         }
     }
 
     pub fn get_ray(&self, s: Float, t: Float) -> Ray {
         let origin = self.origin;
 
+        // Calling `Float3::random_in_disk` is expensive, so skip it if we can
         let disk = if self.lens_radius > 0.05 {
-            // Actually calling `Float3::random_in_disk` is expensive.
             self.lens_radius * Float3::random_in_disk()
         } else {
             Float3::new()

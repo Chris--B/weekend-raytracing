@@ -1,6 +1,3 @@
-// This is in-development and going to be noisey.
-#![allow(dead_code)]
-
 use std::{
     io,
     rc::Rc,
@@ -31,16 +28,17 @@ fn main() {
 
 fn write_image(filename: &str) -> io::Result<()> {
     let nx: u32 = 300;
-    let ny: u32 = 300;
+    let ny: u32 = 200;
     let ns: u32 = 8;
 
     let cam = Camera::new(CameraInfo {
-        lookfrom:  Float3::xyz(3, 3, 2),
-        lookat:    Float3::xyz(0, 0, -1),
-        up:        Float3::xyz(0, 1, 0),
-        vfov:      90.0,
-        aspect:    nx as Float / ny as Float,
-        aperature: 0.0,
+        lookfrom:   Float3::xyz(13., 2., 3.),
+        lookat:     Float3::xyz(0, 0, 0),
+        up:         Float3::xyz(0, 1, 0),
+        vfov:       20.0,
+        aspect:     nx as Float / ny as Float,
+        aperature:  0.1,
+        focus_dist: 20.0,
     });
     let world = make_cover_scene();
 
@@ -55,18 +53,22 @@ fn write_image(filename: &str) -> io::Result<()> {
         let y = ny - y + 1;
         let mut rgb = Float3::default();
         // MSAA
-        for sample in 0..ns {
+        for sample in 1..(ns+1) {
             let u = (x as Float + random::<Float>()) / nx as Float;
             let v = (y as Float + random::<Float>()) / ny as Float;
             let ray = cam.get_ray(u, v);
+
             rgb += color(&ray, &world, 0);
-            // Sanity checks
-            // TODO: These are probably expensive, this is a hot loop.
-            assert!(0.0 <= rgb.x && rgb.x <= ns as Float,
+
+            // Sanity checks - no pixels are allowed outside of the range [0, 1]
+            // Since we accumulate `ns` samples, each within that range,
+            // the valid range at any point in the process is [0, sample].
+            // TODO: Make sure these don't slow us down.
+            assert!(0.0 <= rgb.x && rgb.x <= sample as Float,
                     "({}, {}) #{} rgb = {:?}", x, y, sample, rgb / sample);
-            assert!(0.0 <= rgb.y && rgb.y <= ns as Float,
+            assert!(0.0 <= rgb.y && rgb.y <= sample as Float,
                     "({}, {}) #{} rgb = {:?}", x, y, sample, rgb / sample);
-            assert!(0.0 <= rgb.z && rgb.z <= ns as Float,
+            assert!(0.0 <= rgb.z && rgb.z <= sample as Float,
                     "({}, {}) #{} rgb = {:?}", x, y, sample, rgb / sample);
         }
         // Average mutlisamples
@@ -164,6 +166,7 @@ fn make_green_scene() -> HitableList {
 }
 
 fn make_cover_scene() -> HitableList {
+    // A giant, darkish colored sphere to act as the floor.
     let ground: Box<dyn Hitable> = Box::new(Sphere {
         center: Float3::xyz(0, -1000, 0),
         radius: 1000.0,
@@ -184,6 +187,7 @@ fn make_cover_scene() -> HitableList {
     let point = Float3::xyz(4., 0.2, 0.);
     let radius = 0.2;
 
+    // Many, many little spheres.
     for a in -11..11 {
         let a = a as Float;
         for b in -11..11 {
@@ -240,6 +244,30 @@ fn make_cover_scene() -> HitableList {
             }
         }
     }
+
+    // Three big speheres
+    spheres.push(Box::new(Sphere {
+        center:   Float3::xyz(0., 1., 0.),
+        radius:   1.,
+        material: dielectric.clone(),
+    }));
+
+    spheres.push(Box::new(Sphere {
+        center:   Float3::xyz(-4., 1., 0.),
+        radius:   1.,
+        material: Rc::new(Lambertian {
+            albedo: Float3::xyz(0.4, 0.2, 0.1),
+        }),
+    }));
+
+    spheres.push(Box::new(Sphere {
+        center:   Float3::xyz(4., 1., 0.),
+        radius:   1.,
+        material: Rc::new(Metal {
+            albedo: Float3::xyz(0.7, 0.6, 0.5),
+            fuzz:   0.,
+        }),
+    }));
 
     HitableList { hitables: spheres }
 }

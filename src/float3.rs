@@ -152,7 +152,9 @@ impl Float3 {
     }
 
     pub fn unit(&self) -> Float3 {
-        *self / self.length()
+        let length = self.length();
+        assert_ne!(length, 0.);
+        *self / length
     }
 
     pub fn make_unit(&mut self) {
