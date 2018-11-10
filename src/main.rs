@@ -184,8 +184,9 @@ fn make_cover_scene() -> HitableList {
         refraction_index: 1.5,
     });
 
-    let point = Float3::xyz(4., 0.2, 0.);
+    let point = Float3::xyz(4.0, 0.2, 0.0);
     let radius = 0.2;
+    const GRID: Float = 1.0;
 
     // Many, many little spheres.
     for a in -11..11 {
@@ -193,10 +194,11 @@ fn make_cover_scene() -> HitableList {
         for b in -11..11 {
             let b = b as Float;
 
+            // These are positive random floats to avoid collisions.
             let center = Float3 {
-                x: a + 0.8 * random_sfloat(),
-                y: 0.2,
-                z: b + 0.8 * random_sfloat(),
+                x: a + (GRID - radius) * random_float(),
+                y: radius,
+                z: b + (GRID - radius) * random_float(),
             };
 
             if (center - point).length_sq() > (0.9*0.9) {
