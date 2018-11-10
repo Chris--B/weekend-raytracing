@@ -32,7 +32,7 @@ const MAX_RAY_RECURSION: u32 = 50;
 static NEED_TO_EXIT: AtomicBool = AtomicBool::new(false);
 
 // Things can poll this method to know if they should exit early
-// e.g. we recieved a CtrlC.
+// e.g. we received a CtrlC.
 fn needs_to_exit() -> bool {
     NEED_TO_EXIT.load(Ordering::SeqCst)
 }
@@ -62,7 +62,7 @@ fn write_image(filename: &str) -> io::Result<()> {
     });
     let world = make_cover_scene();
 
-    let count = nx * ny * ns;
+    let count = nx * ny;
     let mut progress = ProgressBar::new(count as u64);
     progress.format("[=> ]");
     progress.set_max_refresh_rate(Some(time::Duration::from_millis(700)));
@@ -72,8 +72,10 @@ fn write_image(filename: &str) -> io::Result<()> {
     for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
         // Go through `y` "backwards"
         let y = ny - y + 1;
+
         let mut rgb = Float3::default();
-        // MSAA
+
+        // AA through many samples
         for sample in 1..(ns+1) {
             let u = (x as Float + random_sfloat()) / nx as Float;
             let v = (y as Float + random_sfloat()) / ny as Float;
@@ -91,7 +93,7 @@ fn write_image(filename: &str) -> io::Result<()> {
             debug_assert!(0.0 <= rgb.z && rgb.z <= sample as Float,
                           "({}, {}) #{} rgb = {:?}", x, y, sample, rgb / sample);
         }
-        // Average mutlisamples
+        // Average samples
         rgb /= ns;
         // Gamma correct
         rgb = rgb.sqrt();
@@ -103,7 +105,7 @@ fn write_image(filename: &str) -> io::Result<()> {
             rgb.z as u8,
         ]);
 
-        progress.add(ns as u64);
+        progress.add(1 as u64);
 
         if needs_to_exit() {
             early_exit = true;
