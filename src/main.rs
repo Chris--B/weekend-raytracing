@@ -1,9 +1,12 @@
 use std::{
     io,
     rc::Rc,
+    sync::atomic::AtomicBool,
+    sync::atomic::Ordering,
     time,
 };
 
+use ctrlc;
 use image;
 use pbr::ProgressBar;
 
@@ -23,7 +26,23 @@ use self::camera::*;
 
 const MAX_RAY_RECURSION: u32 = 50;
 
+// If something unexpected happens and all threads need to exit, this is set
+// to true.
+// Read it with `needs_to_exit()`.
+static NEED_TO_EXIT: AtomicBool = AtomicBool::new(false);
+
+// Things can poll this method to know if they should exit early
+// e.g. we recieved a CtrlC.
+fn needs_to_exit() -> bool {
+    NEED_TO_EXIT.load(Ordering::SeqCst)
+}
+
 fn main() {
+    let ctrlc_handler = || NEED_TO_EXIT.store(true, Ordering::SeqCst);
+    if ctrlc::set_handler(ctrlc_handler).is_err() {
+        eprintln!("Unable to set Ctrl+C handler. Ctrl+C will abort the program.");
+    }
+
     write_image("output.png").unwrap();
 }
 
@@ -48,6 +67,7 @@ fn write_image(filename: &str) -> io::Result<()> {
     progress.format("[=> ]");
     progress.set_max_refresh_rate(Some(time::Duration::from_millis(700)));
 
+    let mut early_exit = false;
     let mut imgbuf = image::RgbImage::new(nx, ny);
     for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
         // Go through `y` "backwards"
@@ -83,13 +103,20 @@ fn write_image(filename: &str) -> io::Result<()> {
             rgb.z as u8,
         ]);
 
-        // Hopefully this isn't expensive.
         progress.add(ns as u64);
+
+        if needs_to_exit() {
+            early_exit = true;
+            println!("Recieved Ctrl+C!");
+            break;
+        }
     }
     // The progress bar is only updated periodically. If it finished counting
     // before it was due for another refresh, it won't update.
-    // We force it to finish here.
-    progress.finish_println("\n");
+    // We force it to finish here, but only if we didn't exit the loop early.
+    if !early_exit {
+        progress.finish_println("\n");
+    }
 
     imgbuf.save(filename)?;
     Ok(())
