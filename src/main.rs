@@ -1,8 +1,7 @@
 use std::{
     io,
     rc::Rc,
-    sync::atomic::AtomicBool,
-    sync::atomic::Ordering,
+    sync::atomic,
     time,
 };
 
@@ -29,16 +28,16 @@ const MAX_RAY_RECURSION: u32 = 50;
 // If something unexpected happens and all threads need to exit, this is set
 // to true.
 // Read it with `needs_to_exit()`.
-static NEED_TO_EXIT: AtomicBool = AtomicBool::new(false);
+static NEED_TO_EXIT: atomic::AtomicBool = atomic::AtomicBool::new(false);
 
 // Things can poll this method to know if they should exit early
 // e.g. we received a CtrlC.
 fn needs_to_exit() -> bool {
-    NEED_TO_EXIT.load(Ordering::SeqCst)
+    NEED_TO_EXIT.load(atomic::Ordering::SeqCst)
 }
 
 fn main() {
-    let ctrlc_handler = || NEED_TO_EXIT.store(true, Ordering::SeqCst);
+    let ctrlc_handler = || NEED_TO_EXIT.store(true, atomic::Ordering::SeqCst);
     if ctrlc::set_handler(ctrlc_handler).is_err() {
         eprintln!("Unable to set Ctrl+C handler. Ctrl+C will abort the program.");
     }
