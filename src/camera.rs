@@ -69,19 +69,13 @@ impl Camera {
     }
 
     pub fn get_ray(&self, s: Float, t: Float) -> Ray {
-        let origin = self.origin;
-
-        // Calling `random_in_disk` is expensive, so skip it if we can
-        let disk = if self.lens_radius > 0.05 {
-            self.lens_radius * random_in_disk()
-        } else {
-            Float3::new()
-        };
-        let offset = s * disk.x + t * disk.y;
+        let disk = self.lens_radius * random_in_disk();
+        let offset = self.u * disk.x + self.v * disk.y;
         let dir = (self.lower_left - self.origin) +
-                  (s*self.horizontal + t*self.vertical) +
-                  offset;
-
-        Ray { origin, dir }
+                  (s*self.horizontal + t*self.vertical);
+        Ray {
+            origin: self.origin + offset,
+            dir:    dir - offset,
+        }
     }
 }

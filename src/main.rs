@@ -46,6 +46,7 @@ fn main() {
     write_image("output.png").unwrap();
 }
 
+#[inline(never)]
 fn write_image(filename: &str) -> io::Result<()> {
     let nx: u32 = 300;
     let ny: u32 = 200;
@@ -75,7 +76,8 @@ fn write_image(filename: &str) -> io::Result<()> {
 
         let mut rgb = Float3::default();
 
-        // AA through many samples
+        // AA through many samples.
+        // We divide by `sample`, so it must not start at zero.
         for sample in 1..(ns+1) {
             let u = (x as Float + random_sfloat()) / nx as Float;
             let v = (y as Float + random_sfloat()) / ny as Float;
@@ -151,6 +153,7 @@ fn color(ray: &Ray, world: &dyn Hitable, depth: u32) -> Float3 {
     }
 }
 
+#[allow(dead_code)]
 fn make_green_scene() -> HitableList {
     HitableList {
         hitables: vec![
