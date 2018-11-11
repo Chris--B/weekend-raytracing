@@ -30,6 +30,84 @@ const MAX_RAY_RECURSION: u32 = 50;
 // Read it with `needs_to_exit()`.
 static NEED_TO_EXIT: atomic::AtomicBool = atomic::AtomicBool::new(false);
 
+struct ImageIter {
+    cur_x :u32,
+    cur_y: u32,
+    max_x: u32,
+    max_y: u32,
+}
+
+impl ImageIter {
+    fn new(max_x: u32, max_y: u32) -> ImageIter {
+        ImageIter {
+            cur_x: 0,
+            cur_y: 0,
+            max_x,
+            max_y,
+        }
+    }
+}
+
+impl Iterator for ImageIter {
+    type Item = (u32, u32);
+    fn next(&mut self) -> Option<Self::Item> {
+        // On function enter, we should have a valid point to return or
+        // we're exchausted and can early-out.
+        if self.cur_y == self.max_y {
+            return None;
+        }
+        let coords = (self.cur_x, self.cur_y);
+
+        // After saving our return value, move to the next pixel.
+        self.cur_x += 1;
+        if self.cur_x == self.max_x {
+            self.cur_x = 0;
+            self.cur_y += 1;
+        }
+        Some(coords)
+    }
+}
+
+#[cfg(test)]
+mod t {
+    use crate::ImageIter;
+
+    #[test]
+    fn check_image_iter() {
+        let mut iter = ImageIter::new(3, 3);
+
+        let actual = [
+            iter.next(),
+            iter.next(),
+            iter.next(),
+            iter.next(),
+            iter.next(),
+            iter.next(),
+            iter.next(),
+            iter.next(),
+            iter.next(),
+            iter.next(),
+        ];
+        let expected = [
+            Some((0, 0)),
+            Some((1, 0)),
+            Some((2, 0)),
+            Some((0, 1)),
+            Some((1, 1)),
+            Some((2, 1)),
+            Some((0, 2)),
+            Some((1, 2)),
+            Some((2, 2)),
+            None,
+        ];
+        assert_eq!(actual, expected);
+
+        // Continue to return None.
+        assert_eq!(iter.next(), None);
+        assert_eq!(iter.next(), None);
+    }
+}
+
 // Things can poll this method to know if they should exit early
 // e.g. we received a CtrlC.
 fn needs_to_exit() -> bool {
@@ -47,9 +125,9 @@ fn main() {
 
 #[inline(never)]
 fn write_image(filename: &str) -> io::Result<()> {
-    let nx: u32 = 300;
-    let ny: u32 = 200;
-    let ns: u32 = 8;
+    let nx: u32 = 3000;
+    let ny: u32 = 2000;
+    let ns: u32 = 1;
 
     let cam = Camera::new(CameraInfo {
         lookfrom:   Float3::xyz(13., 2., 3.),
@@ -69,10 +147,9 @@ fn write_image(filename: &str) -> io::Result<()> {
 
     let mut early_exit = false;
     let mut imgbuf = image::RgbImage::new(nx, ny);
-    for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
-        // Go through `y` "backwards"
-        let y = ny - y + 1;
-
+    for (x, y) in ImageIter::new(nx, ny).par_iter() {
+        // The image coordinate space flips y, so we'll write it out bottom-up.
+        let img_y = ny - y - 1;
         let mut rgb = Float3::default();
 
         // AA through many samples.
@@ -100,7 +177,7 @@ fn write_image(filename: &str) -> io::Result<()> {
         rgb = rgb.sqrt();
         // Scale into u8 range
         rgb *= 255.99;
-        *pixel = image::Rgb([
+        *imgbuf.get_pixel_mut(x, img_y) = image::Rgb([
             rgb.x as u8,
             rgb.y as u8,
             rgb.z as u8,
