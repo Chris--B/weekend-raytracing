@@ -64,6 +64,28 @@ impl Hitable for Sphere {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct MovingSphere {
+    // Static geometry and material. This represents the `MovingSphere` at t=0.
+    pub sphere: Sphere,
+    // The motion vector. The sphere is centered at `sphere.center + t * motion`.
+    pub motion: Float3,
+}
+
+impl Hitable for MovingSphere {
+    fn hit(&self, ray: &Ray, t_min: Float, t_max: Float) -> Option<HitRecord> {
+        // There's no easy way to
+        //      1) reuse the sphere code, and
+        //      2) not clone the material
+        // Thankfully, an Rc::clone() is just a ref count increment.
+        // When we switch to Arcs, the ref count increment becomes atomic.
+        let mut sphere = self.sphere.clone();
+        sphere.center += ray.t * self.motion;
+        let sphere = sphere;
+        sphere.hit(ray, t_min, t_max)
+    }
+}
+
 #[derive(Default)]
 pub struct HitableList {
     pub hitables: Vec<Box<dyn Hitable>>,

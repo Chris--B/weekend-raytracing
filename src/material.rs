@@ -34,7 +34,7 @@ impl Material for NormalToRgb {
 
 impl Material for Lambertian {
     fn scatter(&self,
-               _ray_in:     &Ray,
+               ray_in:      &Ray,
                record:      &HitRecord,
                attenuation: &mut Float3,
                scattered:   &mut Ray)
@@ -44,7 +44,8 @@ impl Material for Lambertian {
         *attenuation = self.albedo;
         *scattered = Ray {
             origin: record.p,
-            dir: target - record.p,
+            dir:    target - record.p,
+            t:      ray_in.t,
         };
         true
     }
@@ -70,6 +71,7 @@ impl Material for Metal {
         *scattered = Ray {
             origin: record.p,
             dir,
+            t: ray_in.t,
         };
         (scattered.dir.dot(&record.normal) > 0.0)
     }
@@ -89,7 +91,7 @@ impl Material for Dielectric {
                scattered:   &mut Ray)
         -> bool
     {
-        // Our material doesn't attenutate anything.
+        // Our material doesn't attenuate anything.
         *attenuation = Float3::xyz(1., 1., 1.);
         let reflected = ray_in.dir.reflect(record.normal);
 
@@ -122,6 +124,7 @@ impl Material for Dielectric {
                 *scattered = Ray {
                     origin: record.p,
                     dir:    refracted,
+                    t:      ray_in.t,
                 };
                 return true;
             }
@@ -131,6 +134,7 @@ impl Material for Dielectric {
         *scattered = Ray {
             origin: record.p,
             dir:    reflected,
+            t:      ray_in.t,
         };
         true
     }

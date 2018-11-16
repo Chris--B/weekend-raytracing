@@ -4,6 +4,7 @@ use crate::prelude::*;
 pub struct Ray {
     pub origin: Float3,
     pub dir:    Float3,
+    pub t:      Float,
 }
 
 impl Ray {

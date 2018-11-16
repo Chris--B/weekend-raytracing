@@ -47,9 +47,9 @@ fn main() {
 
 #[inline(never)]
 fn write_image(filename: &str) -> io::Result<()> {
-    let nx: u32 = 2 * 300;
-    let ny: u32 = 2 * 200;
-    let ns: u32 = 1;
+    let nx: u32 = 300;
+    let ny: u32 = 200;
+    let ns: u32 = 4;
 
     let cam = Camera::new(CameraInfo {
         lookfrom:   Float3::xyz(13., 2., 3.),
@@ -59,6 +59,8 @@ fn write_image(filename: &str) -> io::Result<()> {
         aspect:     nx as Float / ny as Float,
         aperature:  0.0,
         focus_dist: 20.0,
+        t_start:    0.5,
+        t_end:      1.5,
     });
     let world = make_cover_scene();
 
@@ -226,9 +228,9 @@ fn make_cover_scene() -> HitableList {
     const GRID: Float = 1.0;
 
     // Many, many little spheres.
-    for a in -11..11 {
+    for a in -10..10 {
         let a = a as Float;
-        for b in -11..11 {
+        for b in -10..10 {
             let b = b as Float;
 
             // These are positive random floats to avoid collisions.
@@ -243,41 +245,57 @@ fn make_cover_scene() -> HitableList {
                 sphere = match random_float() {
                     // Diffuse
                     prob if prob < 0.8 => {
-                        Box::new(Sphere {
-                            center,
-                            radius,
-                            material: Rc::new(Lambertian {
-                                albedo: Float3 {
-                                    x: random_float() * random_float(),
-                                    y: random_float() * random_float(),
-                                    z: random_float() * random_float(),
-                                },
-                            }),
+                        Box::new(MovingSphere {
+                            sphere: Sphere {
+                                center,
+                                radius,
+                                material: Rc::new(Lambertian {
+                                    albedo: Float3 {
+                                        x: random_float() * random_float(),
+                                        y: random_float() * random_float(),
+                                        z: random_float() * random_float(),
+                                    },
+                                }),
+                            },
+                            // Only Lambertian spheres bounce
+                            motion: Float3 {
+                                x: 0.0,
+                                y: 0.5 * random_float(),
+                                z: 0.0,
+                            },
                         })
-                    },
+                    }
                     // Metal
                     prob if prob < 0.90 => {
-                        Box::new(Sphere {
-                            center,
-                            radius,
-                            material: Rc::new(Metal {
-                                albedo: Float3 {
-                                    x: random_float(),
-                                    y: random_float(),
-                                    z: random_float(),
-                                },
-                                fuzz: 0.5 * random_float(),
-                            }),
+                        Box::new(MovingSphere {
+                            sphere: Sphere {
+                                center,
+                                radius,
+                                material: Rc::new(Metal {
+                                    albedo: Float3 {
+                                        x: random_float(),
+                                        y: random_float(),
+                                        z: random_float(),
+                                    },
+                                    fuzz: 0.5 * random_float(),
+                                }),
+                            },
+                            // Stationary
+                            motion: Float3::new(),
                         })
-                    },
+                    }
                     // Glass
                     _ => {
-                        Box::new(Sphere {
-                            center,
-                            radius,
-                            material: dielectric.clone(),
+                        Box::new(MovingSphere {
+                            sphere: Sphere {
+                                center,
+                                radius,
+                                material: dielectric.clone(),
+                            },
+                            // Stationary - the glass would break!
+                            motion: Float3::new(),
                         })
-                    },
+                    }
                 };
                 spheres.push(sphere);
             }

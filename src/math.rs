@@ -43,6 +43,10 @@ pub fn random_float() -> Float {
     rand::random()
 }
 
+pub fn random_float_in(start: Float, end: Float) -> Float {
+    (end - start) * rand::random::<Float>() + end
+}
+
 pub fn random_sfloat() -> Float {
     2.0 * rand::random::<Float>() - 1.0
 }

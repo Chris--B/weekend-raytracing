@@ -12,6 +12,8 @@ pub struct Camera {
     pub horizontal:  Float3,
     pub vertical:    Float3,
     pub lens_radius: Float,
+    pub t_start:     Float,
+    pub t_end:       Float,
 }
 
 #[derive(Debug)]
@@ -23,6 +25,8 @@ pub struct CameraInfo {
     pub aspect:     Float,
     pub aperature:  Float,
     pub focus_dist: Float,
+    pub t_start:    Float,
+    pub t_end:      Float,
 }
 
 impl Camera {
@@ -65,6 +69,8 @@ impl Camera {
             lower_left:  lookfrom
                          - focus_dist * (half_width * u + half_height * v + w),
             lens_radius: info.aperature / 2.0,
+            t_start:     info.t_start,
+            t_end:       info.t_end,
         }
     }
 
@@ -76,6 +82,7 @@ impl Camera {
         Ray {
             origin: self.origin + offset,
             dir:    dir - offset,
+            t:      random_float_in(self.t_start, self.t_end),
         }
     }
 }
