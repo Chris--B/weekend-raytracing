@@ -127,6 +127,16 @@ impl Float3 {
     pub fn make_unit(&mut self) {
         *self /= self.length()
     }
+
+    /// Computes the absolute value of each component. Each component that was
+    /// a `NAN` stays a `NAN`.
+    pub fn abs(&self) -> Float3 {
+        Float3 {
+            x: self.x.abs(),
+            y: self.y.abs(),
+            z: self.z.abs(),
+        }
+    }
 }
 
 impl ops::Add<Float3> for Float3 {

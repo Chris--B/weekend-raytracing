@@ -14,6 +14,24 @@ pub struct Lambertian {
     pub albedo: Float3,
 }
 
+
+#[derive(Copy, Clone, Debug, Default)]
+pub struct NormalToRgb {}
+
+impl Material for NormalToRgb {
+    fn scatter(&self,
+               _ray_in:     &Ray,
+               record:      &HitRecord,
+               attenuation: &mut Float3,
+               _scattered:  &mut Ray)
+        -> bool
+    {
+        *attenuation = record.normal.unit();
+        // No scattered ray.
+        false
+    }
+}
+
 impl Material for Lambertian {
     fn scatter(&self,
                _ray_in:     &Ray,

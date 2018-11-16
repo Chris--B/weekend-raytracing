@@ -47,9 +47,9 @@ fn main() {
 
 #[inline(never)]
 fn write_image(filename: &str) -> io::Result<()> {
-    let nx: u32 = 300;
-    let ny: u32 = 200;
-    let ns: u32 = 8;
+    let nx: u32 = 2 * 300;
+    let ny: u32 = 2 * 200;
+    let ns: u32 = 1;
 
     let cam = Camera::new(CameraInfo {
         lookfrom:   Float3::xyz(13., 2., 3.),
@@ -57,7 +57,7 @@ fn write_image(filename: &str) -> io::Result<()> {
         up:         Float3::xyz(0., 1., 0.),
         vfov:       20.0,
         aspect:     nx as Float / ny as Float,
-        aperature:  0.1,
+        aperature:  0.0,
         focus_dist: 20.0,
     });
     let world = make_cover_scene();
@@ -110,7 +110,7 @@ fn write_image(filename: &str) -> io::Result<()> {
 
         if needs_to_exit() {
             early_exit = true;
-            println!("Recieved Ctrl+C!");
+            println!("Received Ctrl+C!");
             break;
         }
     }
@@ -139,7 +139,9 @@ fn color(ray: &Ray, world: &dyn Hitable, depth: u32) -> Float3 {
         } else if depth == MAX_RAY_RECURSION {
             Float3::xyz(1., 0., 1.)
         } else {
-            Float3::new()
+            // If scatter hit something, but doesn't produce more rays,
+            // just return the attenuation.
+            attenuation.abs()
         }
     } else {
         // Linearly blend white and blue, depending on the "up" or
@@ -215,6 +217,10 @@ fn make_cover_scene() -> HitableList {
         refraction_index: 1.5,
     });
 
+    // This material is colored by its surface normal and nothing else.
+    // It does not refract, reflect, or change within its environment.
+    let normal_map_material = Rc::new(NormalToRgb {});
+
     let point = Float3::xyz(4.0, 0.2, 0.0);
     let radius = 0.2;
     const GRID: Float = 1.0;
@@ -234,23 +240,24 @@ fn make_cover_scene() -> HitableList {
 
             if (center - point).length_sq() > (0.9*0.9) {
                 let sphere: Box<dyn Hitable>;
-                sphere = match random_sfloat() {
+                sphere = match random_float() {
                     // Diffuse
                     prob if prob < 0.8 => {
                         Box::new(Sphere {
                             center,
                             radius,
-                            material: Rc::new(Lambertian {
-                                albedo: Float3 {
-                                    x: random_float() * random_float(),
-                                    y: random_float() * random_float(),
-                                    z: random_float() * random_float(),
-                                },
-                            }),
+                            // material: Rc::new(Lambertian {
+                            //     albedo: Float3 {
+                            //         x: random_float() * random_float(),
+                            //         y: random_float() * random_float(),
+                            //         z: random_float() * random_float(),
+                            //     },
+                            // }),
+                            material: normal_map_material.clone(),
                         })
                     },
                     // Metal
-                    prob if prob < 0.95 => {
+                    prob if prob < 0.90 => {
                         Box::new(Sphere {
                             center,
                             radius,
@@ -278,7 +285,7 @@ fn make_cover_scene() -> HitableList {
         }
     }
 
-    // Three big speheres
+    // Three big spheres
     spheres.push(Box::new(Sphere {
         center:   Float3::xyz(0., 1., 0.),
         radius:   1.,
