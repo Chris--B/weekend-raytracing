@@ -219,7 +219,7 @@ fn make_cover_scene() -> HitableList {
 
     // This material is colored by its surface normal and nothing else.
     // It does not refract, reflect, or change within its environment.
-    let normal_map_material = Rc::new(NormalToRgb {});
+    let _normal_map_material = Rc::new(NormalToRgb {});
 
     let point = Float3::xyz(4.0, 0.2, 0.0);
     let radius = 0.2;
@@ -246,14 +246,13 @@ fn make_cover_scene() -> HitableList {
                         Box::new(Sphere {
                             center,
                             radius,
-                            // material: Rc::new(Lambertian {
-                            //     albedo: Float3 {
-                            //         x: random_float() * random_float(),
-                            //         y: random_float() * random_float(),
-                            //         z: random_float() * random_float(),
-                            //     },
-                            // }),
-                            material: normal_map_material.clone(),
+                            material: Rc::new(Lambertian {
+                                albedo: Float3 {
+                                    x: random_float() * random_float(),
+                                    y: random_float() * random_float(),
+                                    z: random_float() * random_float(),
+                                },
+                            }),
                         })
                     },
                     // Metal
