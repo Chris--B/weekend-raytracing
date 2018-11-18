@@ -139,9 +139,6 @@ fn write_image(filename: &str) -> io::Result<()> {
         multi_progress.listen();
     });
 
-    // We need this to correctly handle Ctrl+C
-    let mut early_exit = false;
-
     'per_tile:
     for tile in tiles.iter_mut() {
         'per_pixel:
@@ -190,21 +187,9 @@ fn write_image(filename: &str) -> io::Result<()> {
             tile.progress.add(1);
 
             if needs_to_exit() {
-                early_exit = true;
                 println!("Received Ctrl+C!");
                 break 'per_tile;
             }
-        }
-    }
-
-    // The progress bar is only updated preiodically. Unless we are extremely
-    // lucky, this will not correspond to the work actually finishing,
-    // so force a final update here.
-    // Note: It's possible we did not finish the image (e.g. Ctrl+C), but we're
-    // about to exit anyway, so we don't care.
-    if !early_exit {
-        for tile in tiles.iter_mut() {
-            tile.progress.finish();
         }
     }
 
