@@ -10,7 +10,7 @@ use image::{
     self,
     GenericImage,
 };
-use pbr::ProgressBar;
+use pbr;
 
 mod camera;
 mod float3;
@@ -43,6 +43,8 @@ struct Tile {
     // Pixel data for the sub image.
     // This is owned by the tile, and copied out to the parent image later.
     pub pixels: image::RgbImage,
+    // A visual indicator of progress on rendering its sub image.
+    pub progress: pbr::ProgressBar<pbr::Pipe>,
 }
 
 // Things can poll this method to know if they should exit early
@@ -95,6 +97,8 @@ fn write_image(filename: &str) -> io::Result<()> {
         t_end:      1.0,
     });
 
+    let mut multi_progress = pbr::MultiBar::new();
+
     // Each tile represents a subimage of (tile_nx, tile_ny) pixels.
     // They are combined after ray tracing.
     let mut tiles: Vec<Tile> = vec![];
@@ -103,21 +107,37 @@ fn write_image(filename: &str) -> io::Result<()> {
         let x = tile_id % tiles_x;
         let y = tile_id / tiles_x;
 
+        let pixels = image::RgbImage::new(tile_nx, tile_ny);
+
+        let pixel_total = pixels.width() as u64 * pixels.height() as u64;
+        let progress = multi_progress.create_bar(pixel_total);
         tiles.push(Tile {
             offset_x: x * tile_nx,
             offset_y: y * tile_ny,
-            pixels: image::RgbImage::new(tile_nx, tile_ny),
+            pixels,
+            progress,
         });
     }
 
     // Load the scene
     let world = make_cover_scene();
 
-    // Setup a progress bar
+    // Setup the progress bars
     let count = nx * ny;
-    let mut progress = ProgressBar::new(count as u64);
-    progress.format("[=> ]");
-    progress.set_max_refresh_rate(Some(time::Duration::from_millis(700)));
+    let mut running_total = 0;
+    for tile in tiles.iter_mut() {
+        running_total += tile.progress.total;
+        tile.progress.format("[=> ]");
+        tile.progress.set_max_refresh_rate(Some(time::Duration::from_millis(700)));
+    }
+    assert_eq!(running_total, count as u64,
+               "The progress bars don't agree on how many pixels there are!");
+
+    // We don't ever need to rejoin this thread, so don't reference the handle.
+    let _handle = std::thread::spawn(move || {
+        // This blocks, so we run it on a separate thread.
+        multi_progress.listen();
+    });
 
     // We need this to correctly handle Ctrl+C
     let mut early_exit = false;
@@ -167,7 +187,7 @@ fn write_image(filename: &str) -> io::Result<()> {
                 rgb.z as u8,
             ]);
 
-            progress.add(1 as u64);
+            tile.progress.add(1);
 
             if needs_to_exit() {
                 early_exit = true;
@@ -183,7 +203,9 @@ fn write_image(filename: &str) -> io::Result<()> {
     // Note: It's possible we did not finish the image (e.g. Ctrl+C), but we're
     // about to exit anyway, so we don't care.
     if !early_exit {
-        progress.finish_println("\n");
+        for tile in tiles.iter_mut() {
+            tile.progress.finish();
+        }
     }
 
     // Combine the tiles into the final image, which we write to disk.
