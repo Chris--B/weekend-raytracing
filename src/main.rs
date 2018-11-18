@@ -184,19 +184,16 @@ fn write_image(filename: &str) -> io::Result<()> {
                 rgb.z as u8,
             ]);
 
-            tile.progress.add(1);
+            tile.progress.inc();
 
             if needs_to_exit() {
                 println!("Received Ctrl+C!");
                 break 'per_pixel;
             }
         }
+        tile.progress.finish();
     });
     let render_time = before_render.elapsed();
-
-    for tile in tiles.iter_mut() {
-        tile.progress.finish();
-    }
 
     match multi_progress_handle.join() {
         Ok(()) => {},
