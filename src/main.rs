@@ -6,7 +6,10 @@ use std::{
 };
 
 use ctrlc;
-use image;
+use image::{
+    self,
+    GenericImage,
+};
 use pbr::ProgressBar;
 
 mod camera;
@@ -30,6 +33,18 @@ const MAX_RAY_RECURSION: u32 = 50;
 // Read it with `needs_to_exit()`.
 static NEED_TO_EXIT: atomic::AtomicBool = atomic::AtomicBool::new(false);
 
+/// A subset of our final image.
+/// Tiles do not know about other tiles, but they do know their x offsets.
+struct Tile {
+    // x offset into the parent image
+    pub offset_x: u32,
+    // y-offset itno the parent image
+    pub offset_y: u32,
+    // Pixel data for the sub image.
+    // This is owned by the tile, and copied out to the parent image later.
+    pub pixels: image::RgbImage,
+}
+
 // Things can poll this method to know if they should exit early
 // e.g. we received a CtrlC.
 fn needs_to_exit() -> bool {
@@ -47,9 +62,26 @@ fn main() {
 
 #[inline(never)]
 fn write_image(filename: &str) -> io::Result<()> {
+    // Number of samples per pixel.
+    let ns: u32 = 1;
+
+    // Width of the final image in pixels.
     let nx: u32 = 300;
+    // Height of the final image in pixels.
     let ny: u32 = 200;
-    let ns: u32 = 4;
+
+    // The count of tiles work is divided into.
+    // TODO: These should be computed based on CPU cores.
+    let tiles_x = 4;
+    let tiles_y = 2;
+
+    assert_eq!(nx % tiles_x, 0, "I'll solve this later");
+    assert_eq!(ny % tiles_y, 0, "I'll solve this later");
+
+    // Width of each tile in pixels.
+    let tile_nx = nx / tiles_x;
+    // Height of each tile in pixels.
+    let tile_ny = ny / tiles_y;
 
     let cam = Camera::new(CameraInfo {
         lookfrom:   Float3::xyz(13., 2., 3.),
@@ -59,68 +91,111 @@ fn write_image(filename: &str) -> io::Result<()> {
         aspect:     nx as Float / ny as Float,
         aperature:  0.0,
         focus_dist: 20.0,
-        t_start:    0.5,
-        t_end:      1.5,
+        t_start:    0.0,
+        t_end:      1.0,
     });
+
+    // Each tile represents a subimage of (tile_nx, tile_ny) pixels.
+    // They are combined after ray tracing.
+    let mut tiles: Vec<Tile> = vec![];
+    for tile_id in 0..(tiles_x * tiles_y) {
+        // Tile coordinates. Must be translated into pixels with tile_n{x,y}.
+        let x = tile_id % tiles_x;
+        let y = tile_id / tiles_x;
+
+        tiles.push(Tile {
+            offset_x: x * tile_nx,
+            offset_y: y * tile_ny,
+            pixels: image::RgbImage::new(tile_nx, tile_ny),
+        });
+    }
+
+    // Load the scene
     let world = make_cover_scene();
 
+    // Setup a progress bar
     let count = nx * ny;
     let mut progress = ProgressBar::new(count as u64);
     progress.format("[=> ]");
     progress.set_max_refresh_rate(Some(time::Duration::from_millis(700)));
 
+    // We need this to correctly handle Ctrl+C
     let mut early_exit = false;
-    let mut imgbuf = image::RgbImage::new(nx, ny);
-    for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
-        // Go through `y` "backwards"
-        let y = ny - y + 1;
 
-        let mut rgb = Float3::default();
+    'per_tile:
+    for tile in tiles.iter_mut() {
+        'per_pixel:
+        for (x, y, pixel) in tile.pixels.enumerate_pixels_mut() {
+            // Adjust the (x, y) coordinates wrt our tile.
+            let x = x + tile.offset_x;
+            // Go through `y` "backwards"
+            let y = ny - (y + tile.offset_y) + 1;
 
-        // AA through many samples.
-        // We divide by `sample`, so it must not start at zero.
-        for sample in 1..(ns+1) {
-            let u = (x as Float + random_sfloat()) / nx as Float;
-            let v = (y as Float + random_sfloat()) / ny as Float;
-            let ray = cam.get_ray(u, v);
+            let mut rgb = Float3::default();
 
-            rgb += color(&ray, &world, 0);
+            // AA through many samples.
+            // We divide by `sample`, so it must not start at zero.
+            for sample in 1..(ns+1) {
+                let u = (x as Float + random_sfloat()) / nx as Float;
+                let v = (y as Float + random_sfloat()) / ny as Float;
+                let ray = cam.get_ray(u, v);
 
-            // Sanity checks - no pixels are allowed outside of the range [0, 1]
-            // Since we accumulate `ns` samples, each within that range,
-            // the valid range at any point in the process is [0, sample].
-            debug_assert!(0.0 <= rgb.x && rgb.x <= sample as Float,
-                          "({}, {}) #{} rgb = {:?}", x, y, sample, rgb / sample);
-            debug_assert!(0.0 <= rgb.y && rgb.y <= sample as Float,
-                          "({}, {}) #{} rgb = {:?}", x, y, sample, rgb / sample);
-            debug_assert!(0.0 <= rgb.z && rgb.z <= sample as Float,
-                          "({}, {}) #{} rgb = {:?}", x, y, sample, rgb / sample);
-        }
-        // Average samples
-        rgb /= ns;
-        // Gamma correct
-        rgb = rgb.sqrt();
-        // Scale into u8 range
-        rgb *= 255.99;
-        *pixel = image::Rgb([
-            rgb.x as u8,
-            rgb.y as u8,
-            rgb.z as u8,
-        ]);
+                rgb += color(&ray, &world, 0);
 
-        progress.add(1 as u64);
+                // Sanity checks - no pixels are allowed outside of the range [0, 1]
+                // Since we accumulate `ns` samples, each within that range,
+                // the valid range at any point in the process is [0, sample].
+                debug_assert!(0.0 <= rgb.x && rgb.x <= sample as Float,
+                              "({}, {}) #{} rgb = {:?}",
+                              x, y, sample, rgb / sample);
+                debug_assert!(0.0 <= rgb.y && rgb.y <= sample as Float,
+                              "({}, {}) #{} rgb = {:?}",
+                              x, y, sample, rgb / sample);
+                debug_assert!(0.0 <= rgb.z && rgb.z <= sample as Float,
+                              "({}, {}) #{} rgb = {:?}",
+                              x, y, sample, rgb / sample);
+            }
+            // Average samples
+            rgb /= ns;
+            // Gamma correct
+            rgb = rgb.sqrt();
+            // Scale into u8 range
+            rgb *= 255.99;
+            *pixel = image::Rgb([
+                rgb.x as u8,
+                rgb.y as u8,
+                rgb.z as u8,
+            ]);
 
-        if needs_to_exit() {
-            early_exit = true;
-            println!("Received Ctrl+C!");
-            break;
+            progress.add(1 as u64);
+
+            if needs_to_exit() {
+                early_exit = true;
+                println!("Received Ctrl+C!");
+                break 'per_tile;
+            }
         }
     }
-    // The progress bar is only updated periodically. If it finished counting
-    // before it was due for another refresh, it won't update.
-    // We force it to finish here, but only if we didn't exit the loop early.
+
+    // The progress bar is only updated preiodically. Unless we are extremely
+    // lucky, this will not correspond to the work actually finishing,
+    // so force a final update here.
+    // Note: It's possible we did not finish the image (e.g. Ctrl+C), but we're
+    // about to exit anyway, so we don't care.
     if !early_exit {
         progress.finish_println("\n");
+    }
+
+    // Combine the tiles into the final image, which we write to disk.
+    let mut imgbuf = image::RgbImage::new(nx, ny);
+    for tile in tiles {
+        let ok = imgbuf.copy_from(&tile.pixels, tile.offset_x, tile.offset_y);
+        assert_eq!(ok, true,
+                  "imgbuf::copy_from() failed. Is ({}, {}) out of bounds? Bounds are ({}, {}).",
+                  tile.offset_x + tile.pixels.width(),
+                  tile.offset_y + tile.pixels.height(),
+                  imgbuf.width(),
+                  imgbuf.height());
     }
 
     imgbuf.save(filename)?;
