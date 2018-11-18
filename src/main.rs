@@ -1,6 +1,6 @@
 use std::{
     io,
-    rc::Rc,
+    sync::Arc,
     sync::atomic,
     time,
 };
@@ -238,21 +238,21 @@ fn make_green_scene() -> HitableList {
             Box::new(Sphere {
                 center: Float3::xyz(0., 0., -1.),
                 radius: 0.5,
-                material: Rc::new(Lambertian {
+                material: Arc::new(Lambertian {
                     albedo: Float3::xyz(0.1, 0.2, 0.5),
                 }),
             }),
             Box::new(Sphere {
                 center: Float3::xyz(0.0, -100.5, -1.0),
                 radius: 100.0,
-                material: Rc::new(Lambertian {
+                material: Arc::new(Lambertian {
                     albedo: Float3::xyz(0.8, 0.8, 0.0),
                 }),
             }),
             Box::new(Sphere {
                 center: Float3::xyz(1., 0., -1.),
                 radius: 0.5,
-                material: Rc::new(Metal {
+                material: Arc::new(Metal {
                     albedo: Float3::xyz(0.8, 0.6, 0.2),
                     fuzz:   0.0,
                 }),
@@ -260,14 +260,14 @@ fn make_green_scene() -> HitableList {
             Box::new(Sphere {
                 center: Float3::xyz(-1., 0., -1.),
                 radius: 0.5,
-                material: Rc::new(Dielectric {
+                material: Arc::new(Dielectric {
                     refraction_index: 1.5,
                 }),
             }),
             Box::new(Sphere {
                 center: Float3::xyz(-1., 0., -1.),
                 radius: -0.45, // Negative radius makes the above sphere hollow.
-                material: Rc::new(Dielectric {
+                material: Arc::new(Dielectric {
                     refraction_index: 1.5,
                 }),
             }),
@@ -280,7 +280,7 @@ fn make_cover_scene() -> HitableList {
     let ground: Box<dyn Hitable> = Box::new(Sphere {
         center: Float3::xyz(0., -1000., 0.),
         radius: 1000.0,
-        material: Rc::new(Lambertian {
+        material: Arc::new(Lambertian {
             albedo: Float3::xxx(0.5),
         })
     });
@@ -290,13 +290,13 @@ fn make_cover_scene() -> HitableList {
 
     // This material can be reused, since its parameters don't change
     // between spheres.
-    let dielectric = Rc::new(Dielectric {
+    let dielectric = Arc::new(Dielectric {
         refraction_index: 1.5,
     });
 
     // This material is colored by its surface normal and nothing else.
     // It does not refract, reflect, or change within its environment.
-    let _normal_map_material = Rc::new(NormalToRgb {});
+    let _normal_map_material = Arc::new(NormalToRgb {});
 
     let point = Float3::xyz(4.0, 0.2, 0.0);
     let radius = 0.2;
@@ -324,7 +324,7 @@ fn make_cover_scene() -> HitableList {
                             sphere: Sphere {
                                 center,
                                 radius,
-                                material: Rc::new(Lambertian {
+                                material: Arc::new(Lambertian {
                                     albedo: Float3 {
                                         x: random_float() * random_float(),
                                         y: random_float() * random_float(),
@@ -346,7 +346,7 @@ fn make_cover_scene() -> HitableList {
                             sphere: Sphere {
                                 center,
                                 radius,
-                                material: Rc::new(Metal {
+                                material: Arc::new(Metal {
                                     albedo: Float3 {
                                         x: random_float(),
                                         y: random_float(),
@@ -387,7 +387,7 @@ fn make_cover_scene() -> HitableList {
     spheres.push(Box::new(Sphere {
         center:   Float3::xyz(-4., 1., 0.),
         radius:   1.,
-        material: Rc::new(Lambertian {
+        material: Arc::new(Lambertian {
             albedo: Float3::xyz(0.4, 0.2, 0.1),
         }),
     }));
@@ -395,7 +395,7 @@ fn make_cover_scene() -> HitableList {
     spheres.push(Box::new(Sphere {
         center:   Float3::xyz(4., 1., 0.),
         radius:   1.,
-        material: Rc::new(Metal {
+        material: Arc::new(Metal {
             albedo: Float3::xyz(0.7, 0.6, 0.5),
             fuzz:   0.,
         }),

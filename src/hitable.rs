@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::prelude::*;
 
@@ -11,10 +11,10 @@ pub struct HitRecord {
     // Normal value at point of hit.
     pub normal: Float3,
     // Material of hit.
-    pub material: Rc<dyn Material>,
+    pub material: Arc<dyn Material>,
 }
 
-pub trait Hitable {
+pub trait Hitable: std::fmt::Debug + Send + Sync {
     fn hit(&self, ray: &Ray, t_min: Float, t_max: Float) -> Option<HitRecord>;
 }
 
@@ -22,7 +22,7 @@ pub trait Hitable {
 pub struct Sphere {
     pub center: Float3,
     pub radius: Float,
-    pub material: Rc<dyn Material>,
+    pub material: Arc<dyn Material>,
 }
 
 impl Hitable for Sphere {
@@ -86,7 +86,7 @@ impl Hitable for MovingSphere {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct HitableList {
     pub hitables: Vec<Box<dyn Hitable>>,
 }
