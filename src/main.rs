@@ -134,6 +134,9 @@ fn write_image(filename: &str) -> io::Result<()> {
     assert_eq!(running_total, count as u64,
                "The progress bars don't agree on how many pixels there are!");
 
+    println!("Rendering on {} threads", rayon::current_num_threads());
+    println!();
+
     let multi_progress_handle = std::thread::spawn(move || {
         // This blocks, so we run it on a separate thread.
         multi_progress.listen();
