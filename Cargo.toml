@@ -5,9 +5,10 @@ authors = ["Chris Butler <chrisbutler296@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-rand = "^0.5.5"
-pbr = "^1.0"
-ctrlc = "^3.1"
+ctrlc = "3.1"
+pbr   = "1.0"
+rand  = "0.5.5"
+rayon = "1.0"
 
 [dependencies.image]
 version = "^0.20"

@@ -11,6 +11,7 @@ use image::{
     GenericImage,
 };
 use pbr;
+use rayon::prelude::*;
 
 mod camera;
 mod float3;
@@ -139,7 +140,7 @@ fn write_image(filename: &str) -> io::Result<()> {
         multi_progress.listen();
     });
 
-    tiles.iter_mut().for_each(|tile: &mut Tile| {
+    tiles.par_iter_mut().for_each(|tile: &mut Tile| {
         'per_pixel:
         for (x, y, pixel) in tile.pixels.enumerate_pixels_mut() {
             // Adjust the (x, y) coordinates wrt our tile.
