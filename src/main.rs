@@ -38,7 +38,7 @@ static NEED_TO_EXIT: atomic::AtomicBool = atomic::AtomicBool::new(false);
 struct Tile {
     // x offset into the parent image
     pub offset_x: u32,
-    // y-offset itno the parent image
+    // y-offset into the parent image
     pub offset_y: u32,
     // Pixel data for the sub image.
     // This is owned by the tile, and copied out to the parent image later.
@@ -139,8 +139,7 @@ fn write_image(filename: &str) -> io::Result<()> {
         multi_progress.listen();
     });
 
-    'per_tile:
-    for tile in tiles.iter_mut() {
+    tiles.iter_mut().for_each(|tile: &mut Tile| {
         'per_pixel:
         for (x, y, pixel) in tile.pixels.enumerate_pixels_mut() {
             // Adjust the (x, y) coordinates wrt our tile.
@@ -188,10 +187,10 @@ fn write_image(filename: &str) -> io::Result<()> {
 
             if needs_to_exit() {
                 println!("Received Ctrl+C!");
-                break 'per_tile;
+                break 'per_pixel;
             }
         }
-    }
+    });
 
     // Combine the tiles into the final image, which we write to disk.
     let mut imgbuf = image::RgbImage::new(nx, ny);
