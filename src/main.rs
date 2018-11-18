@@ -66,12 +66,12 @@ fn main() {
 #[inline(never)]
 fn write_image(filename: &str) -> io::Result<()> {
     // Number of samples per pixel.
-    let ns: u32 = 1;
+    let ns: u32 = 4;
 
     // Width of the final image in pixels.
-    let nx: u32 = 300;
+    let nx: u32 = 2 * 300;
     // Height of the final image in pixels.
-    let ny: u32 = 200;
+    let ny: u32 = 2 * 200;
 
     // The count of tiles work is divided into.
     // TODO: These should be computed based on CPU cores.
@@ -134,12 +134,12 @@ fn write_image(filename: &str) -> io::Result<()> {
     assert_eq!(running_total, count as u64,
                "The progress bars don't agree on how many pixels there are!");
 
-    // We don't ever need to rejoin this thread, so don't reference the handle.
-    let _handle = std::thread::spawn(move || {
+    let multi_progress_handle = std::thread::spawn(move || {
         // This blocks, so we run it on a separate thread.
         multi_progress.listen();
     });
 
+    let before_render = time::Instant::now();
     tiles.par_iter_mut().for_each(|tile: &mut Tile| {
         'per_pixel:
         for (x, y, pixel) in tile.pixels.enumerate_pixels_mut() {
@@ -192,6 +192,25 @@ fn write_image(filename: &str) -> io::Result<()> {
             }
         }
     });
+    let render_time = before_render.elapsed();
+
+    for tile in tiles.iter_mut() {
+        tile.progress.finish();
+    }
+
+    match multi_progress_handle.join() {
+        Ok(()) => {},
+        Err(ref err) => {
+            eprintln!("Error joining progress bar listener thread: {:#?}", err);
+            // We ignore this error because... what else are we going to do?
+        },
+    }
+    // Tasteful empty space.
+    println!("");
+
+    let secs = render_time.as_secs() as f64
+               + render_time.subsec_millis() as f64 / 1e3;
+    println!("Full scene render time: {:.3}s", secs);
 
     // Combine the tiles into the final image, which we write to disk.
     let mut imgbuf = image::RgbImage::new(nx, ny);
