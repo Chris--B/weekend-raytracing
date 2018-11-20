@@ -217,7 +217,8 @@ fn write_image(filename: &str) -> io::Result<()> {
     for tile in tiles {
         let ok = imgbuf.copy_from(&tile.pixels, tile.offset_x, tile.offset_y);
         assert_eq!(ok, true,
-                  "imgbuf::copy_from() failed. Is ({}, {}) out of bounds? Bounds are ({}, {}).",
+                  concat!("imgbuf::copy_from() failed.",
+                          " Is ({}, {}) out of bounds? Bounds are ({}, {})."),
                   tile.offset_x + tile.pixels.width(),
                   tile.offset_y + tile.pixels.height(),
                   imgbuf.width(),
