@@ -210,6 +210,10 @@ fn write_image(opt: &Opt) -> io::Result<()> {
     assert_eq!(running_total, count as u64,
                "The progress bars don't agree on how many pixels there are!");
 
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(opt.jobs as usize)
+        .build_global()
+        .expect("Unexpected failure with rayon::ThreadPoolBuilder");
     println!("Rendering on {} threads", rayon::current_num_threads());
     println!();
 
