@@ -1,5 +1,6 @@
 use std::{
     io,
+    path,
     sync::Arc,
     sync::atomic,
     time,
@@ -7,11 +8,11 @@ use std::{
 
 use ctrlc;
 use image::{
-    self,
     GenericImage,
 };
 use pbr;
 use rayon::prelude::*;
+use structopt::*;
 
 mod camera;
 mod float3;
@@ -33,6 +34,61 @@ const MAX_RAY_RECURSION: u32 = 50;
 // to true.
 // Read it with `needs_to_exit()`.
 static NEED_TO_EXIT: atomic::AtomicBool = atomic::AtomicBool::new(false);
+
+#[derive(Debug, StructOpt)]
+#[structopt(name="raytracer",
+            about="Traces rays",
+            raw(
+                setting="clap::AppSettings::DeriveDisplayOrder",
+                setting="clap::AppSettings::DisableVersion"))]
+struct Opt {
+
+    // ===== Options ==========
+
+    /// Width of image in pixels
+    #[structopt(default_value="600", short, long)]
+    width: u32,
+
+    /// Height of image in pixels
+    #[structopt(default_value="400", short, long)]
+    height: u32,
+
+    /// Number of rays cast per pixel
+    #[structopt(default_value="4", short, long)]
+    samples_per_pixel: u32,
+
+    /// Number of tiles along x axis. Must divide <width>
+    // TODO: Lift this requirement
+    #[structopt(default_value="4", long)]
+    tiles_x: u32,
+
+    /// Number of tiles along y axis. Must divide <height>
+    // TODO: Lift this requirement
+    #[structopt(default_value="2", long)]
+    tiles_y: u32,
+
+    /// Number of threads used in `rayon`'s thread pool
+    /// 0 uses system default
+    #[structopt(default_value="0", short, long)]
+    jobs: u8, // Like we're going to run on 256-thread machines.
+
+    /// File to write image data into
+    // It will be created if it does not exist, and overwriten if it does
+    // Note that this extension is how `image` determines encoding
+    #[structopt(default_value="output.png", parse(from_os_str), short, long)]
+    output: path::PathBuf,
+
+    // ===== Flags ==========
+
+    /// Enable more detailed output
+    #[structopt(short, long)]
+    verbose: bool,
+
+    /// Start the renderer in interactive mode
+    /// NOT IMPLEMENTED
+    #[structopt(short, long)]
+    interactive: bool,
+}
 
 /// A subset of our final image.
 /// Tiles do not know about other tiles, but they do know their x offsets.
@@ -59,6 +115,10 @@ fn main() {
     if ctrlc::set_handler(ctrlc_handler).is_err() {
         eprintln!("Unable to set Ctrl+C handler. Ctrl+C will abort the program.");
     }
+
+    let opt = Opt::from_args();
+    println!("{:#?}", opt);
+    if true { return; }
 
     write_image("output.png").unwrap();
 }

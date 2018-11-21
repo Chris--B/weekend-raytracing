@@ -5,6 +5,7 @@ authors = ["Chris Butler <chrisbutler296@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+structopt = "0.2.12"
 ctrlc = "3.1"
 pbr   = "1.0"
 rand  = "0.5.5"
