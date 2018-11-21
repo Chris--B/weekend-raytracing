@@ -42,7 +42,6 @@ static NEED_TO_EXIT: atomic::AtomicBool = atomic::AtomicBool::new(false);
                 setting="clap::AppSettings::DeriveDisplayOrder",
                 setting="clap::AppSettings::DisableVersion"))]
 struct Opt {
-
     // ===== Options ==========
 
     /// Width of image in pixels
@@ -135,7 +134,6 @@ fn needs_to_exit() -> bool {
 
 fn main() {
     let opt = Opt::from_args();
-    println!("{:#?}", opt);
 
     let ctrlc_handler = || NEED_TO_EXIT.store(true, atomic::Ordering::SeqCst);
     if ctrlc::set_handler(ctrlc_handler).is_err() {
@@ -185,9 +183,13 @@ fn write_image(opt: &Opt) -> io::Result<()> {
         let y = tile_id / tiles_x;
 
         let pixels = image::RgbImage::new(tile_nx, tile_ny);
-
         let pixel_total = pixels.width() as u64 * pixels.height() as u64;
-        let progress = multi_progress.create_bar(pixel_total);
+
+        let mut progress = multi_progress.create_bar(pixel_total);
+        progress.message(&format!("Tile ({}, {}): ", x, y));
+        progress.format("[=> ]");
+        progress.set_max_refresh_rate(Some(time::Duration::from_millis(700)));
+
         tiles.push(Tile {
             offset_x: x * tile_nx,
             offset_y: y * tile_ny,
@@ -199,15 +201,10 @@ fn write_image(opt: &Opt) -> io::Result<()> {
     // Load the scene
     let world = make_cover_scene();
 
-    // Setup the progress bars
-    let count = nx * ny;
-    let mut running_total = 0;
-    for tile in tiles.iter_mut() {
-        running_total += tile.progress.total;
-        tile.progress.format("[=> ]");
-        tile.progress.set_max_refresh_rate(Some(time::Duration::from_millis(700)));
-    }
-    assert_eq!(running_total, count as u64,
+    // Sanity check the progress bars
+    let pb_count: u64 = tiles.iter().map(|t| t.progress.total).sum();
+    let px_count: u64 = (nx * ny) as u64;
+    assert_eq!(pb_count, px_count,
                "The progress bars don't agree on how many pixels there are!");
 
     rayon::ThreadPoolBuilder::new()
