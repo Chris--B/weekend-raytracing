@@ -66,7 +66,7 @@ struct Opt {
     /// Number of tiles along y axis. Must divide <height>
     // TODO: Lift this requirement
     // TODO: Pick this automatically and default to "0"
-    #[structopt(default_value="2", long="y-tiles")]
+    #[structopt(default_value="4", long="y-tiles")]
     tiles_y: u32,
 
     /// Number of threads used in `rayon`'s thread pool.
