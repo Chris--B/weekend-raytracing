@@ -59,15 +59,17 @@ struct Opt {
 
     /// Number of tiles along x axis. Must divide <width>
     // TODO: Lift this requirement
-    #[structopt(default_value="4", long)]
+    // TODO: Pick this automatically and default to "0"
+    #[structopt(default_value="4", long="x-tiles")]
     tiles_x: u32,
 
     /// Number of tiles along y axis. Must divide <height>
     // TODO: Lift this requirement
-    #[structopt(default_value="2", long)]
+    // TODO: Pick this automatically and default to "0"
+    #[structopt(default_value="2", long="y-tiles")]
     tiles_y: u32,
 
-    /// Number of threads used in `rayon`'s thread pool
+    /// Number of threads used in `rayon`'s thread pool.
     /// 0 uses system default
     #[structopt(default_value="0", short, long)]
     jobs: u8, // Like we're going to run on 256-thread machines.
@@ -78,13 +80,34 @@ struct Opt {
     #[structopt(default_value="output.png", parse(from_os_str), short, long)]
     output: path::PathBuf,
 
+    /// Camera aperature
+    #[structopt(default_value="0.1", short, long)]
+    aperature: Float,
+
+    /// Camera focus point
+    #[structopt(default_value="20.0", short, long)]
+    focus_dist: Float,
+
+    /// Time of initial exposure
+    #[structopt(default_value="0.0", short="t", long="t-start")]
+    t_start: Float,
+
+    /// Time of final exposure
+    #[structopt(default_value="1e-3", short="u", long="t-end")]
+    t_end: Float,
+
+    /// Select a scene to render.
+    /// NOT IMPLEMENTED
+    #[structopt(default_value="cover", long)]
+    scene: String,
+
     // ===== Flags ==========
 
     /// Enable more detailed output
     #[structopt(short, long)]
     verbose: bool,
 
-    /// Start the renderer in interactive mode
+    /// Start the renderer in interactive mode.
     /// NOT IMPLEMENTED
     #[structopt(short, long)]
     interactive: bool,
@@ -111,32 +134,25 @@ fn needs_to_exit() -> bool {
 }
 
 fn main() {
+    let opt = Opt::from_args();
+    println!("{:#?}", opt);
+
     let ctrlc_handler = || NEED_TO_EXIT.store(true, atomic::Ordering::SeqCst);
     if ctrlc::set_handler(ctrlc_handler).is_err() {
         eprintln!("Unable to set Ctrl+C handler. Ctrl+C will abort the program.");
     }
 
-    let opt = Opt::from_args();
-    println!("{:#?}", opt);
-    if true { return; }
-
-    write_image("output.png").unwrap();
+    write_image(&opt).unwrap();
 }
 
 #[inline(never)]
-fn write_image(filename: &str) -> io::Result<()> {
-    // Number of samples per pixel.
-    let ns: u32 = 4;
+fn write_image(opt: &Opt) -> io::Result<()> {
+    let ns: u32 = opt.samples_per_pixel;
+    let nx: u32 = opt.width;
+    let ny: u32 = opt.height;
 
-    // Width of the final image in pixels.
-    let nx: u32 = 2 * 300;
-    // Height of the final image in pixels.
-    let ny: u32 = 2 * 200;
-
-    // The count of tiles work is divided into.
-    // TODO: These should be computed based on CPU cores.
-    let tiles_x = 4;
-    let tiles_y = 2;
+    let tiles_x = opt.tiles_x;
+    let tiles_y = opt.tiles_y;
 
     assert_eq!(nx % tiles_x, 0, "I'll solve this later");
     assert_eq!(ny % tiles_y, 0, "I'll solve this later");
@@ -285,7 +301,7 @@ fn write_image(filename: &str) -> io::Result<()> {
                   imgbuf.height());
     }
 
-    imgbuf.save(filename)?;
+    imgbuf.save(&opt.output)?;
     Ok(())
 }
 
@@ -363,16 +379,17 @@ fn make_green_scene() -> HitableList {
 }
 
 fn make_cover_scene() -> HitableList {
+    // Our accelaration structure is a list of spheres.
+    let mut spheres: Vec<Box<dyn Hitable>> = vec![];
+
     // A giant, darkish colored sphere to act as the floor.
-    let ground: Box<dyn Hitable> = Box::new(Sphere {
+    let ground = Box::new(Sphere {
         center: Float3::xyz(0., -1000., 0.),
         radius: 1000.0,
         material: Arc::new(Lambertian {
             albedo: Float3::xxx(0.5),
         })
     });
-
-    let mut spheres = vec![];
     spheres.push(ground);
 
     // This material can be reused, since its parameters don't change
