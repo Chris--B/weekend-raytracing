@@ -270,7 +270,6 @@ fn write_image(opt: &Opt) -> io::Result<()> {
             tile.progress.inc();
 
             if needs_to_exit() {
-                println!("Received Ctrl+C!");
                 break 'per_pixel;
             }
         }
