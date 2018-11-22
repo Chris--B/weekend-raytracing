@@ -45,15 +45,15 @@ struct Opt {
     // ===== Options ==========
 
     /// Width of image in pixels
-    #[structopt(default_value="600", short, long)]
+    #[structopt(default_value="1200", short, long)]
     width: u32,
 
     /// Height of image in pixels
-    #[structopt(default_value="400", short, long)]
+    #[structopt(default_value="800", short, long)]
     height: u32,
 
     /// Number of rays cast per pixel
-    #[structopt(default_value="4", short, long)]
+    #[structopt(default_value="10", short, long)]
     samples_per_pixel: u32,
 
     /// Number of tiles along x axis. Must divide <width>
