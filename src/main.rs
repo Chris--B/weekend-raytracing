@@ -1,5 +1,11 @@
 use std::{
+    collections::hash_map,
+    hash::{
+        self,
+        Hasher,
+    },
     io,
+    mem,
     path,
     sync::Arc,
     sync::atomic,
@@ -11,6 +17,7 @@ use image::{
     GenericImage,
 };
 use pbr;
+use rand::prelude::*;
 use rayon::prelude::*;
 use structopt::*;
 
@@ -134,6 +141,12 @@ struct Tile {
 // e.g. we received a CtrlC.
 fn needs_to_exit() -> bool {
     NEED_TO_EXIT.load(atomic::Ordering::SeqCst)
+}
+
+fn hash_it(thing: &impl hash::Hash) -> u64 {
+    let mut hasher = hash_map::DefaultHasher::new();
+    thing.hash(&mut hasher);
+    hasher.finish()
 }
 
 fn main() {
@@ -387,9 +400,22 @@ fn make_green_scene() -> HitableList {
 }
 
 fn make_cover_scene() -> HitableList {
-    use rand::{Rng, SeedableRng};
-    let seed: [u8; 16] = unsafe { std::mem::transmute_copy(&0xdead_beef_u64) };
-    let mut rng = SmallRng::from_seed(seed);
+    // Sigh... All of this to hash two strings into 128-bits. ._.
+    //
+    // `mem::transmute` is unsafe in general because many types don't appreciate
+    // arbitary bit patterns being operated on like they're that type.
+    // We're transmuting from two primitives types, so this is fine.
+    // All possible 128-bit patterns for [u8; 16] are valid here.
+    let hash_bytes: [u8; 16] = unsafe {
+        // TODO: When `u64::to_be_bytes` and friends stabilize, we can use those.
+        //       See https://github.com/rust-lang/rust/issues/52963
+        // The advantage of that will be consistency across endian platforms.
+        mem::transmute([
+            hash_it(b"Katy's Penguin"),
+            hash_it(b"Alyssa's Panda"),
+        ])
+    };
+    let mut rng = SmallRng::from_seed(hash_bytes);
 
     // Our accelaration structure is a list of spheres.
     let mut spheres: Vec<Box<dyn Hitable>> = vec![];
@@ -435,7 +461,7 @@ fn make_cover_scene() -> HitableList {
                 let sphere: Box<dyn Hitable>;
                 sphere = match rng.gen::<Float>() {
                     // Diffuse
-                    prob if prob < 0.8 => {
+                    prob if prob < 0.7 => {
                         Box::new(MovingSphere {
                             sphere: Sphere {
                                 center,

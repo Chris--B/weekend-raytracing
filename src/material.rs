@@ -112,28 +112,30 @@ impl Material for Dielectric {
 
         // We scatter the ray along one of the refracted or reflected paths.
         // Which one is determined by whether we can refract the incoming
-        // ray against the surface we just hit and `schlick()`.
+        // ray against the surface we just hit and `schlick()` as a propability.
+        let scattered_dir: Float3;
+
+        // Can we refract?
         if let Some(refracted) = ray_in.dir.refract(outward_normal,
                                                     refraction_index)
         {
-            // Generally, we *refract* if we can. When we can, we also check our
-            // chances against the schlick function, which repreents the odds of
-            // *reflecting*.
-            let prob = random_sfloat(); // Can this be negative?
-            if prob >= schlick(cosine, refraction_index) {
-                *scattered = Ray {
-                    origin: record.p,
-                    dir:    refracted,
-                    t:      ray_in.t,
-                };
-                return true;
+            // Yes, and we usually will if we can.
+            // But first, we check a random number against the `schlick`
+            // function. This represents the odds of *reflecting* instead.
+            if random_float() >= schlick(cosine, refraction_index) {
+                scattered_dir = refracted;
+            } else {
+                // Probability test failed: just reflect.
+                scattered_dir = reflected;
             }
+        } else {
+            // We can't refract: just reflect.
+            scattered_dir = reflected;
         }
 
-        // Otherwise, just reflect.
         *scattered = Ray {
             origin: record.p,
-            dir:    reflected,
+            dir:    scattered_dir,
             t:      ray_in.t,
         };
         true
