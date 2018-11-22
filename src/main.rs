@@ -79,6 +79,10 @@ struct Opt {
     #[structopt(default_value="output.png", parse(from_os_str), short, long)]
     output: path::PathBuf,
 
+    /// Vertical field of view
+    #[structopt(default_value="20.0", long)]
+    vfov: Float,
+
     /// Camera aperature
     #[structopt(default_value="0.1", short, long)]
     aperature: Float,
@@ -92,7 +96,7 @@ struct Opt {
     t_start: Float,
 
     /// Time of final exposure
-    #[structopt(default_value="1e-3", short="u", long="t-end")]
+    #[structopt(default_value="0.5", short="u", long="t-end")]
     t_end: Float,
 
     /// Select a scene to render.
@@ -164,12 +168,12 @@ fn write_image(opt: &Opt) -> io::Result<()> {
         lookfrom:   Float3::xyz(13., 2., 3.),
         lookat:     Float3::xyz(0., 0., 0.),
         up:         Float3::xyz(0., 1., 0.),
-        vfov:       20.0,
+        vfov:       opt.vfov,
         aspect:     nx as Float / ny as Float,
-        aperature:  0.0,
-        focus_dist: 20.0,
-        t_start:    0.0,
-        t_end:      1.0,
+        aperature:  opt.aperature,
+        focus_dist: opt.focus_dist,
+        t_start:    opt.t_start,
+        t_end:      opt.t_end,
     });
 
     let mut multi_progress = pbr::MultiBar::new();
@@ -186,7 +190,7 @@ fn write_image(opt: &Opt) -> io::Result<()> {
         let pixel_total = pixels.width() as u64 * pixels.height() as u64;
 
         let mut progress = multi_progress.create_bar(pixel_total);
-        progress.message(&format!("Tile ({}, {}): ", x, y));
+        progress.message(&format!("Tile {:>2} ({}, {}): ", tile_id, x, y));
         progress.format("[=> ]");
         progress.set_max_refresh_rate(Some(time::Duration::from_millis(700)));
 
@@ -214,7 +218,7 @@ fn write_image(opt: &Opt) -> io::Result<()> {
     println!("Rendering on {} threads", rayon::current_num_threads());
     println!();
 
-    let multi_progress_handle = std::thread::spawn(move || {
+    let h_listener = std::thread::spawn(move || {
         // This blocks, so we run it on a separate thread.
         multi_progress.listen();
     });
@@ -274,7 +278,7 @@ fn write_image(opt: &Opt) -> io::Result<()> {
     });
     let render_time = before_render.elapsed();
 
-    match multi_progress_handle.join() {
+    match h_listener.join() {
         Ok(()) => {},
         Err(ref err) => {
             eprintln!("Error joining progress bar listener thread: {:#?}", err);
@@ -293,8 +297,8 @@ fn write_image(opt: &Opt) -> io::Result<()> {
     for tile in tiles {
         let ok = imgbuf.copy_from(&tile.pixels, tile.offset_x, tile.offset_y);
         assert_eq!(ok, true,
-                  concat!("imgbuf::copy_from() failed.",
-                          " Is ({}, {}) out of bounds? Bounds are ({}, {})."),
+                  concat!("imgbuf::copy_from() failed. ",
+                          "Is ({}, {}) out of bounds? Bounds are ({}, {})."),
                   tile.offset_x + tile.pixels.width(),
                   tile.offset_y + tile.pixels.height(),
                   imgbuf.width(),
