@@ -137,13 +137,17 @@ fn needs_to_exit() -> bool {
 }
 
 fn main() {
+    // Parse CLI
     let opt = Opt::from_args();
 
+    // If the user uses Ctrl+C to quit early, we want to handle that.
+    // Specifically, we write what image data has been generated to disk.
     let ctrlc_handler = || NEED_TO_EXIT.store(true, atomic::Ordering::SeqCst);
     if ctrlc::set_handler(ctrlc_handler).is_err() {
         eprintln!("Unable to set Ctrl+C handler. Ctrl+C will abort the program.");
     }
 
+    // Bulk of the work
     write_image(&opt).unwrap();
 }
 
@@ -383,6 +387,10 @@ fn make_green_scene() -> HitableList {
 }
 
 fn make_cover_scene() -> HitableList {
+    use rand::{Rng, SeedableRng};
+    let seed: [u8; 16] = unsafe { std::mem::transmute_copy(&0xdead_beef_u64) };
+    let mut rng = SmallRng::from_seed(seed);
+
     // Our accelaration structure is a list of spheres.
     let mut spheres: Vec<Box<dyn Hitable>> = vec![];
 
@@ -418,14 +426,14 @@ fn make_cover_scene() -> HitableList {
 
             // These are positive random floats to avoid collisions.
             let center = Float3 {
-                x: a + (GRID - radius) * random_float(),
+                x: a + (GRID - radius) * rng.gen::<Float>(),
                 y: radius,
-                z: b + (GRID - radius) * random_float(),
+                z: b + (GRID - radius) * rng.gen::<Float>(),
             };
 
             if (center - point).length_sq() > (0.9*0.9) {
                 let sphere: Box<dyn Hitable>;
-                sphere = match random_float() {
+                sphere = match rng.gen::<Float>() {
                     // Diffuse
                     prob if prob < 0.8 => {
                         Box::new(MovingSphere {
@@ -434,16 +442,16 @@ fn make_cover_scene() -> HitableList {
                                 radius,
                                 material: Arc::new(Lambertian {
                                     albedo: Float3 {
-                                        x: random_float() * random_float(),
-                                        y: random_float() * random_float(),
-                                        z: random_float() * random_float(),
+                                        x: rng.gen::<Float>() * rng.gen::<Float>(),
+                                        y: rng.gen::<Float>() * rng.gen::<Float>(),
+                                        z: rng.gen::<Float>() * rng.gen::<Float>(),
                                     },
                                 }),
                             },
                             // Only Lambertian spheres bounce
                             motion: Float3 {
                                 x: 0.0,
-                                y: 0.5 * random_float(),
+                                y: 0.5 * rng.gen::<Float>(),
                                 z: 0.0,
                             },
                         })
@@ -456,11 +464,11 @@ fn make_cover_scene() -> HitableList {
                                 radius,
                                 material: Arc::new(Metal {
                                     albedo: Float3 {
-                                        x: random_float(),
-                                        y: random_float(),
-                                        z: random_float(),
+                                        x: rng.gen::<Float>(),
+                                        y: rng.gen::<Float>(),
+                                        z: rng.gen::<Float>(),
                                     },
-                                    fuzz: 0.5 * random_float(),
+                                    fuzz: 0.5 * rng.gen::<Float>(),
                                 }),
                             },
                             // Stationary
