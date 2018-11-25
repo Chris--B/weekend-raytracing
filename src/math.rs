@@ -50,3 +50,84 @@ pub fn random_float_in(start: Float, end: Float) -> Float {
 pub fn random_sfloat() -> Float {
     2.0 * rand::random::<Float>() - 1.0
 }
+
+pub fn factors(num: u32) -> impl Iterator<Item=u32> {
+    struct FactorIter {
+        max: u32,
+        cur: u32,
+    }
+
+    impl Iterator for FactorIter {
+        type Item = u32;
+        fn next(&mut self) -> Option<Self::Item> {
+            if self.cur >= self.max {
+                return None;
+            }
+            if self.cur == 0 {
+                self.cur = 1;
+                return Some(1); // that I use to know
+            }
+
+            loop {
+                self.cur += 1;
+                if self.max % self.cur == 0 {
+                    break;
+                }
+                debug_assert!(self.cur < self.max);
+            }
+
+            Some(self.cur)
+        }
+    }
+
+    FactorIter {
+        max: num,
+        cur: 0,
+    }
+}
+
+#[cfg(test)]
+mod t {
+    #[test]
+    fn check_factors() {
+        let known_factors: [ &[u32]; 33 ] = [
+            /*  0 => */ &[],
+            /*  1 => */ &[1],
+            /*  2 => */ &[1, 2],
+            /*  3 => */ &[1, 3],
+            /*  4 => */ &[1, 2, 4],
+            /*  5 => */ &[1, 5],
+            /*  6 => */ &[1, 2, 3, 6],
+            /*  7 => */ &[1, 7],
+            /*  8 => */ &[1, 2, 4, 8],
+            /*  9 => */ &[1, 3, 9],
+            /* 10 => */ &[1, 2, 5, 10],
+            /* 11 => */ &[1, 11],
+            /* 12 => */ &[1, 2, 3, 4, 6, 12],
+            /* 13 => */ &[1, 13],
+            /* 14 => */ &[1, 2, 7, 14],
+            /* 15 => */ &[1, 3, 5, 15],
+            /* 16 => */ &[1, 2, 4, 8, 16],
+            /* 17 => */ &[1, 17],
+            /* 18 => */ &[1, 2, 3, 6, 9, 18],
+            /* 19 => */ &[1, 19],
+            /* 20 => */ &[1, 2, 4, 5, 10, 20],
+            /* 21 => */ &[1, 3, 7, 21],
+            /* 22 => */ &[1, 2, 11, 22],
+            /* 23 => */ &[1, 23],
+            /* 24 => */ &[1, 2, 3, 4, 6, 8, 12, 24],
+            /* 25 => */ &[1, 5, 25],
+            /* 26 => */ &[1, 2, 13, 26],
+            /* 27 => */ &[1, 3, 9, 27],
+            /* 28 => */ &[1, 2, 4, 7, 14, 28],
+            /* 29 => */ &[1, 29],
+            /* 30 => */ &[1, 2, 3, 5, 6, 10, 15, 30],
+            /* 31 => */ &[1, 31],
+            /* 32 => */ &[1, 2, 4, 8, 16, 32],
+        ];
+        for (num, known) in known_factors.iter().cloned().enumerate() {
+            let ours: Vec<_> = crate::math::factors(num as u32).collect();
+            assert_eq!(ours, known);
+        }
+    }
+}

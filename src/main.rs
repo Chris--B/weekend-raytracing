@@ -197,10 +197,7 @@ fn write_image(opt: &Opt) -> io::Result<()> {
         // Be mindful of how many factors your requested count has!
         let mut best_factor = 1;                // First factor
         let mut best_error = opt.tiles as f64;  // Worst possible error
-        // ** TODO: Factor the tile count, don't hard code to 16. **
-        let factors: &[u32] = &[1, 2, 4, 8, 16, 32, 64, 128, 256, 512];
-        for factor in factors.iter() {
-            let factor = *factor;
+        for factor in math::factors(opt.tiles) {
             let next_error = (raw_y - factor as f64).abs();
             if next_error < best_error {
                 best_factor = factor;
