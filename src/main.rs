@@ -95,7 +95,7 @@ struct Opt {
     aperature: Float,
 
     /// Camera focus point
-    #[structopt(default_value="20.0", short, long)]
+    #[structopt(default_value="10.0", short, long)]
     focus_dist: Float,
 
     /// Time of initial exposure
