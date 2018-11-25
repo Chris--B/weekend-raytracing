@@ -137,6 +137,41 @@ impl Float3 {
             z: self.z.abs(),
         }
     }
+
+    /// Return the minimum of each component in a new Float3.
+    /// ```rust
+    /// # use crate::float3::Float3;
+    /// let a = Float3::xyz(-1, 2, -3);
+    /// let b = Float3::xyz(1, -2, 3);
+    ///
+    /// assert_eq!(a.min(c), c.min(a));
+    /// assert_eq!(a.min(c), Float3::xyz(-1, -2, -3))
+    /// ```
+    pub fn min(&self, other: &Float3) -> Float3 {
+        Float3 {
+            x: self.x.min(other.x),
+            y: self.y.min(other.y),
+            z: self.z.min(other.z),
+        }
+    }
+
+    /// Return the maximum of each component in a new Float3.
+    /// ```rust
+    /// # use crate::float3::Float3;
+    /// let a = Float3::xyz(-1, 2, -3);
+    /// let b = Float3::xyz(1, -2, 3);
+    /// let c = a.max(c);
+    ///
+    /// assert_eq!(a.max(c), c.max(a));
+    /// assert_eq!(a.max(c), Float3::xyz(1, 2, 3))
+    /// ```
+    pub fn max(&self, other: &Float3) -> Float3 {
+        Float3 {
+            x: self.x.max(other.x),
+            y: self.y.max(other.y),
+            z: self.z.max(other.z),
+        }
+    }
 }
 
 impl ops::Add<Float3> for Float3 {
