@@ -169,6 +169,7 @@ fn write_image(opt: &Opt) -> io::Result<()> {
     let nx: u32 = opt.width;
     let ny: u32 = opt.height;
 
+    // TODO: Refactor into a function.
     let (tiles_x, tiles_y) = {
         let aspect: Float = (nx as Float) / (ny as Float);
         // We want to create roughly square tiles, but they need to divide the
@@ -198,7 +199,15 @@ fn write_image(opt: &Opt) -> io::Result<()> {
         let mut best_factor = 1;                // First factor
         let mut best_error = opt.tiles as f64;  // Worst possible error
         for factor in math::factors(opt.tiles) {
-            let next_error = (raw_y - factor as f64).abs();
+            // We want to minimize "error". Here, error is defined as the
+            // ratio from our raw, ideal y with the factor in question.
+            // If the factor is *smaller*, we flip the ratio to allow this
+            // process to shorten the height of tiles, if need be.
+            let mut next_error = raw_y / factor as f64;
+            if next_error < 1.0 {
+                next_error = 1.0 / next_error;
+            }
+
             if next_error < best_error {
                 best_factor = factor;
                 best_error = next_error;
@@ -208,9 +217,6 @@ fn write_image(opt: &Opt) -> io::Result<()> {
         let x = opt.tiles / y;
         assert_eq!(opt.tiles as f64 / y as f64, x as f64,
                    "Tile size calculation should be exact, integer math!");
-        eprintln!("raw_y={}, y={}", raw_y, y);
-        eprintln!("x={}", x);
-        eprintln!("tiles={}", opt.tiles);
         (x, y)
     };
 
@@ -276,8 +282,7 @@ fn write_image(opt: &Opt) -> io::Result<()> {
         .num_threads(opt.jobs as usize)
         .build_global()
         .expect("Unexpected failure with rayon::ThreadPoolBuilder");
-    println!("Rendering on {} threads", rayon::current_num_threads());
-    println!();
+    eprintln!("Rendering on {} threads\n", rayon::current_num_threads());
 
     let h_listener = std::thread::spawn(move || {
         // This blocks, so we run it on a separate thread.
@@ -351,7 +356,7 @@ fn write_image(opt: &Opt) -> io::Result<()> {
 
     let secs = render_time.as_secs() as f64
                + render_time.subsec_millis() as f64 / 1e3;
-    println!("Full scene render time: {:.3}s", secs);
+    eprintln!("Full scene render time: {:.3}s", secs);
 
     // Combine the tiles into the final image, which we write to disk.
     let mut imgbuf = image::RgbImage::new(nx, ny);
