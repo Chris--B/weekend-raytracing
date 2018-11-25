@@ -114,6 +114,10 @@ struct Opt {
     /// NOT IMPLEMENTED
     #[structopt(short, long)]
     interactive: bool,
+
+    /// Skip some tiles in a checkerboard fashion. Useful for debugging tiles
+    #[structopt(long="checkerboard-tiles")]
+    checkerboard_tiles: bool,
 }
 
 /// A subset of our final image.
@@ -250,6 +254,13 @@ fn write_image(opt: &Opt) -> io::Result<()> {
         let x = tile_id % tiles_x;
         let y = tile_id / tiles_x;
 
+        // When we're set to skip tiles, don't even enqueue it.
+        if opt.checkerboard_tiles {
+            if x % 2 != y % 2 {
+                continue;
+            }
+        }
+
         let pixels = image::RgbImage::new(tile_nx, tile_ny);
         let pixel_total = pixels.width() as u64 * pixels.height() as u64;
 
@@ -272,11 +283,15 @@ fn write_image(opt: &Opt) -> io::Result<()> {
     // Load the scene
     let world = make_cover_scene();
 
-    // Sanity check the progress bars
-    let pb_count: u64 = tiles.iter().map(|t| t.progress.total).sum();
-    let px_count: u64 = (nx * ny) as u64;
-    assert_eq!(pb_count, px_count,
-               "The progress bars don't agree on how many pixels there are!");
+    // Sanity check the progress bars.
+    // If we're doing checkboarded tiles, we don't care since it would
+    // fail anyway.
+    if !opt.checkerboard_tiles {
+        let pb_count: u64 = tiles.iter().map(|t| t.progress.total).sum();
+        let px_count: u64 = (nx * ny) as u64;
+        assert_eq!(pb_count, px_count,
+                "The progress bars don't agree on how many pixels there are!");
+    }
 
     rayon::ThreadPoolBuilder::new()
         .num_threads(opt.jobs as usize)
