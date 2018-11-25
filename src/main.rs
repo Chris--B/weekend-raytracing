@@ -63,17 +63,10 @@ struct Opt {
     #[structopt(default_value="10", short, long)]
     samples_per_pixel: u32,
 
-    /// Number of tiles along x axis. Must divide <width>
-    // TODO: Lift this requirement
+    /// Number of tiles to subdivide the image into
     // TODO: Pick this automatically and default to "0"
-    #[structopt(default_value="4", long="x-tiles")]
-    tiles_x: u32,
-
-    /// Number of tiles along y axis. Must divide <height>
-    // TODO: Lift this requirement
-    // TODO: Pick this automatically and default to "0"
-    #[structopt(default_value="4", long="y-tiles")]
-    tiles_y: u32,
+    #[structopt(default_value="16", short, long)]
+    tiles: u32,
 
     /// Number of threads used in `rayon`'s thread pool.
     /// 0 uses system default
@@ -99,11 +92,11 @@ struct Opt {
     focus_dist: Float,
 
     /// Time of initial exposure
-    #[structopt(default_value="0.0", short="t", long="t-start")]
+    #[structopt(default_value="0.0", long="t-start")]
     t_start: Float,
 
     /// Time of final exposure
-    #[structopt(default_value="0.5", short="u", long="t-end")]
+    #[structopt(default_value="0.5", long="t-end")]
     t_end: Float,
 
     /// Select a scene to render.
@@ -126,6 +119,12 @@ struct Opt {
 /// A subset of our final image.
 /// Tiles do not know about other tiles, but they do know their x offsets.
 struct Tile {
+    // Unique id for each tile
+    pub tile_id: u32,
+    // x coordinate of tile, in the tile grid
+    pub tile_x: u32,
+    // y coordinate of tile, in the tile grid
+    pub tile_y: u32,
     // x offset into the parent image
     pub offset_x: u32,
     // y-offset into the parent image
@@ -170,8 +169,53 @@ fn write_image(opt: &Opt) -> io::Result<()> {
     let nx: u32 = opt.width;
     let ny: u32 = opt.height;
 
-    let tiles_x = opt.tiles_x;
-    let tiles_y = opt.tiles_y;
+    let (tiles_x, tiles_y) = {
+        let aspect: Float = (nx as Float) / (ny as Float);
+        // We want to create roughly square tiles, but they need to divide the
+        // image's width.
+        // In the case of a square image (W == H), we could just call `.sqrt()`.
+        // More generally, we need to scale the number of tiles along one side
+        // by the aspect ratio (W/H).
+        // Here's the problem described in formula.
+        //          x = # of tiles along x axis / width,
+        //          y = # of tiles along y axis / height,
+        //      x     == ASPECT * y;
+        //      x * y == opt.tiles;
+        // Since we know `ASPECT` and `opt.tiles`, we re-arrange the above as:
+        //      x    = y * ASPECT
+        //      y**2 = opt.tiles / ASPECT
+        // This is enough to compute the value:
+        let raw_y: f64 = (opt.tiles as Float / aspect).sqrt().round() as f64;
+
+        // At this point `raw_y` is a float and might not divide the requested
+        // tile count easily. We need to decide wether to opt for more square
+        // tiles by disregarding the requested tile count, or opt for hitting
+        // the tile count but with less square tiles.
+        // We opt for respecting the requested tile count.
+        // We do this by rounding the previous raw_y value to the closest factor
+        // of the tile count.
+        // Be mindful of how many factors your requested count has!
+        let mut best_factor = 1;                // First factor
+        let mut best_error = opt.tiles as f64;  // Worst possible error
+        // ** TODO: Factor the tile count, don't hard code to 16. **
+        let factors: &[u32] = &[1, 2, 4, 8, 16, 32, 64, 128, 256, 512];
+        for factor in factors.iter() {
+            let factor = *factor;
+            let next_error = (raw_y - factor as f64).abs();
+            if next_error < best_error {
+                best_factor = factor;
+                best_error = next_error;
+            }
+        }
+        let y = best_factor;
+        let x = opt.tiles / y;
+        assert_eq!(opt.tiles as f64 / y as f64, x as f64,
+                   "Tile size calculation should be exact, integer math!");
+        eprintln!("raw_y={}, y={}", raw_y, y);
+        eprintln!("x={}", x);
+        eprintln!("tiles={}", opt.tiles);
+        (x, y)
+    };
 
     assert_eq!(nx % tiles_x, 0, "I'll solve this later");
     assert_eq!(ny % tiles_y, 0, "I'll solve this later");
@@ -212,6 +256,9 @@ fn write_image(opt: &Opt) -> io::Result<()> {
         progress.set_max_refresh_rate(Some(time::Duration::from_millis(700)));
 
         tiles.push(Tile {
+            tile_id,
+            tile_x: x,
+            tile_y: y,
             offset_x: x * tile_nx,
             offset_y: y * tile_ny,
             pixels,
