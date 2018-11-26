@@ -137,31 +137,24 @@ impl Hitable for HitableList {
 
     fn bounding_box(&self, t0: Float, t1: Float) -> Option<Aabb> {
         // Iterate over the bounding boxes of `self.hitables`.
-        let mut iter = self.hitables.iter().map(|h| h.bounding_box(t0, t1));
+        let mut iter = self.hitables
+            .iter()
+            .map(|h| h.bounding_box(t0, t1));
 
-        // TODO: Can this be cleaner?
-        // We can only compute a bounding box if
-        //      1) There are items in the list
-        let mut running_aabb: Aabb;
-        if let Some(o_aabb) = iter.next() {
-            //  2) Every item in the list has a bounding box.
-            if let Some(aabb) = o_aabb {
-                running_aabb = aabb;
-            } else {
-                return None;
-            }
-        } else {
-            return None;
-        }
-
-        for o_next_box in iter {
-            if let Some(next_box) = o_next_box {
-                running_aabb = Aabb::surrounding(&running_aabb, &next_box);
-            } else {
-                // Even a single thing without a bounding box stops us from
-                // being able to bound all of its parent lists.
-                return None;
-            }
+        // We initialize this with the first thing in the iterator, or else
+        // there is nothing and we exit early.
+        // Note on the `??`:
+        //      `iter.next()` here returns an `Option<Item>`, but `Item` itself
+        //      is an `Option`. Thus, we use `?` twice to unwrap both `Option`s
+        //      or return early if either is `None`.
+        let mut running_aabb: Aabb = iter.next()??;
+        for next_box in iter {
+            // Even a single thing without a bounding box stops us from
+            // being able to bound all of its parent lists.
+            // In that case, return None.
+            let next_box = next_box?;
+            // Otherwise keep growing our box around the next hitable.
+            running_aabb = Aabb::surrounding(&running_aabb, &next_box);
         }
 
         Some(running_aabb)
