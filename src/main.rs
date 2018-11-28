@@ -16,7 +16,6 @@ use ctrlc;
 use image::{
     GenericImage,
 };
-use pbr;
 use rand::prelude::*;
 use rayon::prelude::*;
 use structopt::*;
@@ -136,8 +135,8 @@ struct Tile {
     // Pixel data for the sub image.
     // This is owned by the tile, and copied out to the parent image later.
     pub pixels: image::RgbImage,
-    // A visual indicator of progress on rendering its sub image.
-    pub progress: pbr::ProgressBar<pbr::Pipe>,
+    /// Human-friendly tile name
+    pub name: String,
 }
 
 // Things can poll this method to know if they should exit early
@@ -172,6 +171,12 @@ fn write_image(opt: &Opt) -> io::Result<()> {
     let ns: u32 = opt.samples_per_pixel;
     let nx: u32 = opt.width;
     let ny: u32 = opt.height;
+
+    println!("Output Settings:");
+    println!("  width:      {}", opt.width);
+    println!("  height:     {}", opt.height);
+    println!("  samples/px: {}", opt.samples_per_pixel);
+    println!();
 
     // TODO: Refactor into a function.
     let (tiles_x, tiles_y) = {
@@ -232,7 +237,7 @@ fn write_image(opt: &Opt) -> io::Result<()> {
     // Height of each tile in pixels.
     let tile_ny = ny / tiles_y;
 
-    let cam = Camera::new(CameraInfo {
+    let camera_info = CameraInfo {
         lookfrom:   Float3::xyz(13., 2., 3.),
         lookat:     Float3::xyz(0., 0., 0.),
         up:         Float3::xyz(0., 1., 0.),
@@ -242,9 +247,9 @@ fn write_image(opt: &Opt) -> io::Result<()> {
         focus_dist: opt.focus_dist,
         t_start:    opt.t_start,
         t_end:      opt.t_end,
-    });
-
-    let mut multi_progress = pbr::MultiBar::new();
+    };
+    println!("{:#?}", camera_info);
+    let cam = Camera::new(camera_info);
 
     // Each tile represents a subimage of (tile_nx, tile_ny) pixels.
     // They are combined after ray tracing.
@@ -261,51 +266,32 @@ fn write_image(opt: &Opt) -> io::Result<()> {
             }
         }
 
-        let pixels = image::RgbImage::new(tile_nx, tile_ny);
-        let pixel_total = pixels.width() as u64 * pixels.height() as u64;
-
-        let mut progress = multi_progress.create_bar(pixel_total);
-        progress.message(&format!("Tile {:>2} ({}, {}): ", tile_id, x, y));
-        progress.format("[=> ]");
-        progress.set_max_refresh_rate(Some(time::Duration::from_millis(700)));
-
         tiles.push(Tile {
             tile_id,
             tile_x: x,
             tile_y: y,
             offset_x: x * tile_nx,
             offset_y: y * tile_ny,
-            pixels,
-            progress,
+            pixels: image::RgbImage::new(tile_nx, tile_ny),
+            name: format!("Tile {:>2} ({}, {})", tile_id, x, y),
         });
     }
 
     // Load the scene
     let world = make_cover_scene();
 
-    // Sanity check the progress bars.
-    // If we're doing checkboarded tiles, we don't care since it would
-    // fail anyway.
-    if !opt.checkerboard_tiles {
-        let pb_count: u64 = tiles.iter().map(|t| t.progress.total).sum();
-        let px_count: u64 = (nx * ny) as u64;
-        assert_eq!(pb_count, px_count,
-                "The progress bars don't agree on how many pixels there are!");
-    }
-
     rayon::ThreadPoolBuilder::new()
         .num_threads(opt.jobs as usize)
         .build_global()
         .expect("Unexpected failure with rayon::ThreadPoolBuilder");
-    eprintln!("Rendering on {} threads\n", rayon::current_num_threads());
+    println!("Rendering on {} threads",
+             rayon::current_num_threads());
+    println!("");
 
-    let h_listener = std::thread::spawn(move || {
-        // This blocks, so we run it on a separate thread.
-        multi_progress.listen();
-    });
-
+    println!("Rendering tiles");
     let before_render = time::Instant::now();
     tiles.par_iter_mut().for_each(|tile: &mut Tile| {
+        println!("  + {}", tile.name);
         'per_pixel:
         for (x, y, pixel) in tile.pixels.enumerate_pixels_mut() {
             // Adjust the (x, y) coordinates wrt our tile.
@@ -349,29 +335,27 @@ fn write_image(opt: &Opt) -> io::Result<()> {
                 rgb.z as u8,
             ]);
 
-            tile.progress.inc();
-
             if needs_to_exit() {
                 break 'per_pixel;
             }
         }
-        tile.progress.finish();
+        let render_time = before_render.elapsed();
+        let just_sec = render_time.as_secs() as f64;
+        let just_ms = render_time.subsec_millis() as f64;
+        let gross_secs = just_sec + just_ms * 1e-3;
+        let pixel_total = tile.pixels.width() as f64 *
+                          tile.pixels.height() as f64;
+
+        println!("  + {}\t{:.3}s\t{:.2} pixels/s",
+                 tile.name,
+                 gross_secs,
+                 pixel_total / gross_secs);
     });
     let render_time = before_render.elapsed();
 
-    match h_listener.join() {
-        Ok(()) => {},
-        Err(ref err) => {
-            eprintln!("Error joining progress bar listener thread: {:#?}", err);
-            // We ignore this error because... what else are we going to do?
-        },
-    }
-    // Tasteful empty space.
-    println!("");
-
     let secs = render_time.as_secs() as f64
                + render_time.subsec_millis() as f64 / 1e3;
-    eprintln!("Full scene render time: {:.3}s", secs);
+    println!("Full scene render time: {:.3}s", secs);
 
     // Combine the tiles into the final image, which we write to disk.
     let mut imgbuf = image::RgbImage::new(nx, ny);
