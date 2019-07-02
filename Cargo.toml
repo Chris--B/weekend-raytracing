@@ -10,6 +10,10 @@ ctrlc = "3.1"
 rand  = "0.5.5"
 rayon = "1.0"
 
+# My PR has been merged upstream, so we can stop doing this as soon as a
+# 1.02 is published.
+# This has not happened yet, last  checked July 1st, 2019.
+#      See: https://crates.io/crates/pbr
 [dependencies.pbr]
 git = "https://github.com/Chris--B/pb"
 
@@ -19,4 +23,7 @@ default-features = false
 features = ["png_codec"]
 
 [profile.release]
+debug = true
+
+[profile.dev]
 debug = true

@@ -37,11 +37,6 @@ use self::camera::*;
 
 const MAX_RAY_RECURSION: u32 = 50;
 
-// If something unexpected happens and all threads need to exit, this is set
-// to true.
-// Read it with `needs_to_exit()`.
-static NEED_TO_EXIT: atomic::AtomicBool = atomic::AtomicBool::new(false);
-
 #[derive(Debug, StructOpt)]
 #[structopt(name="raytracer",
             about="Traces rays",
@@ -140,10 +135,19 @@ struct Tile {
     pub progress: pbr::ProgressBar<pbr::Pipe>,
 }
 
+// Tasks use this to exit early
+static NEED_TO_EXIT: atomic::AtomicBool = atomic::AtomicBool::new(false);
+
 // Things can poll this method to know if they should exit early
 // e.g. we received a CtrlC.
 fn needs_to_exit() -> bool {
     NEED_TO_EXIT.load(atomic::Ordering::SeqCst)
+}
+
+// Things can call this method to signal that the application should exit
+// Calling this multiple times is fine but redundant.
+fn signal_exit() {
+    NEED_TO_EXIT.store(true, atomic::Ordering::SeqCst);
 }
 
 fn hash_it(thing: &impl hash::Hash) -> u64 {
@@ -158,8 +162,7 @@ fn main() {
 
     // If the user uses Ctrl+C to quit early, we want to handle that.
     // Specifically, we write what image data has been generated to disk.
-    let ctrlc_handler = || NEED_TO_EXIT.store(true, atomic::Ordering::SeqCst);
-    if ctrlc::set_handler(ctrlc_handler).is_err() {
+    if ctrlc::set_handler(signal_exit).is_err() {
         eprintln!("Unable to set Ctrl+C handler. Ctrl+C will abort the program.");
     }
 
