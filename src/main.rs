@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::{
     collections::hash_map,
     hash::{
@@ -156,6 +158,56 @@ fn hash_it(thing: &impl hash::Hash) -> u64 {
     hasher.finish()
 }
 
+fn pick_tiling_dimensions(n_tiles: u32, nx: u32, ny: u32) -> (u32, u32) {
+    let aspect: Float = (nx as Float) / (ny as Float);
+
+    // We want to create roughly square tiles, but they need to divide the
+    // image's width exactly.
+    // In the case of a square image (W == H), we could just call `.sqrt()`.
+    // More generally, we need to scale the number of tiles along one side
+    // by the aspect ratio (W/H).
+    // Here's the problem described in formula.
+    //          x := # of tiles along thex axis (width)
+    //          y := # of tiles along they axis (height)
+    //      x     == ASPECT * y;
+    //      x * y == n_tiles;
+    // Since we know `ASPECT` and `n_tiles`, we re-arrange the above as:
+    //      x    = ASPECT * y
+    //      y**2 = n_tiles / ASPECT
+    // This is enough to compute the value and round it to an integer.
+    let raw_y: f64 = (n_tiles as Float / aspect).sqrt().round() as f64;
+
+    // At this point `raw_y` is a float and might not divide the requested
+    // tile count easily. We need to decide wether to opt for more square
+    // tiles by disregarding the requested tile count, or opt for hitting
+    // the tile count but with less square tiles.
+    // We opt for respecting the requested tile count.
+    // We do this by rounding the previous raw_y value to the closest factor
+    // of the tile count.
+    let mut best_factor = 1;                // First factor
+    let mut best_error = n_tiles as f64;  // Worst possible error
+    for factor in math::factors(n_tiles) {
+        // We want to minimize "error". Here, error is defined as the
+        // ratio from our raw, ideal y with the factor in question.
+        // If the factor is *smaller*, we flip the ratio to allow this
+        // process to shorten the height of tiles, if need be.
+        let mut next_error = raw_y / factor as f64;
+        if next_error < 1.0 {
+            next_error = 1.0 / next_error;
+        }
+
+        if next_error < best_error {
+            best_factor = factor;
+            best_error = next_error;
+        }
+    }
+    let y = best_factor;
+    let x = n_tiles / y;
+    assert_eq!(n_tiles as f64 / y as f64, x as f64,
+               "Tile size calculation should be exact, integer math!");
+    (x, y)
+}
+
 fn main() {
     // Parse CLI
     let opt = Opt::from_args();
@@ -170,62 +222,12 @@ fn main() {
     write_image(&opt).unwrap();
 }
 
-#[inline(never)]
 fn write_image(opt: &Opt) -> io::Result<()> {
     let ns: u32 = opt.samples_per_pixel;
     let nx: u32 = opt.width;
     let ny: u32 = opt.height;
 
-    // TODO: Refactor into a function.
-    let (tiles_x, tiles_y) = {
-        let aspect: Float = (nx as Float) / (ny as Float);
-        // We want to create roughly square tiles, but they need to divide the
-        // image's width.
-        // In the case of a square image (W == H), we could just call `.sqrt()`.
-        // More generally, we need to scale the number of tiles along one side
-        // by the aspect ratio (W/H).
-        // Here's the problem described in formula.
-        //          x = # of tiles along x axis / width,
-        //          y = # of tiles along y axis / height,
-        //      x     == ASPECT * y;
-        //      x * y == opt.tiles;
-        // Since we know `ASPECT` and `opt.tiles`, we re-arrange the above as:
-        //      x    = y * ASPECT
-        //      y**2 = opt.tiles / ASPECT
-        // This is enough to compute the value:
-        let raw_y: f64 = (opt.tiles as Float / aspect).sqrt().round() as f64;
-
-        // At this point `raw_y` is a float and might not divide the requested
-        // tile count easily. We need to decide wether to opt for more square
-        // tiles by disregarding the requested tile count, or opt for hitting
-        // the tile count but with less square tiles.
-        // We opt for respecting the requested tile count.
-        // We do this by rounding the previous raw_y value to the closest factor
-        // of the tile count.
-        // Be mindful of how many factors your requested count has!
-        let mut best_factor = 1;                // First factor
-        let mut best_error = opt.tiles as f64;  // Worst possible error
-        for factor in math::factors(opt.tiles) {
-            // We want to minimize "error". Here, error is defined as the
-            // ratio from our raw, ideal y with the factor in question.
-            // If the factor is *smaller*, we flip the ratio to allow this
-            // process to shorten the height of tiles, if need be.
-            let mut next_error = raw_y / factor as f64;
-            if next_error < 1.0 {
-                next_error = 1.0 / next_error;
-            }
-
-            if next_error < best_error {
-                best_factor = factor;
-                best_error = next_error;
-            }
-        }
-        let y = best_factor;
-        let x = opt.tiles / y;
-        assert_eq!(opt.tiles as f64 / y as f64, x as f64,
-                   "Tile size calculation should be exact, integer math!");
-        (x, y)
-    };
+    let (tiles_x, tiles_y) = pick_tiling_dimensions(opt.tiles, nx, ny);
 
     assert_eq!(nx % tiles_x, 0, "I'll solve this later");
     assert_eq!(ny % tiles_y, 0, "I'll solve this later");
