@@ -6,7 +6,6 @@ use std::{
         self,
         Hasher,
     },
-    io,
     mem,
     path,
     sync::Arc,
@@ -19,6 +18,8 @@ use image::{
     GenericImage,
 };
 use pbr;
+use sdl2;
+
 use rand::prelude::*;
 use rayon::prelude::*;
 use structopt::*;
@@ -219,10 +220,82 @@ fn main() {
     }
 
     // Bulk of the work
-    write_image(&opt).unwrap();
+    let imgbuf = write_image(&opt);
+
+    imgbuf.save(&opt.output).unwrap();
+    show_window(&imgbuf).unwrap();
 }
 
-fn write_image(opt: &Opt) -> io::Result<()> {
+fn show_window(image: &image::RgbImage) -> Result<(), Box<std::error::Error>> {
+    use sdl2::{
+        pixels::PixelFormatEnum,
+        render::TextureAccess,
+        event::Event,
+        keyboard::Keycode,
+        rect::Rect,
+    };
+
+    let sdl_ctx = sdl2::init()?;
+    let video = sdl_ctx.video()?;
+
+    let mut canvas;
+    {
+        let window = video.window("yo", image.width(), image.height())
+            .position_centered()
+            .build()?;
+        canvas = window.into_canvas().build()?;
+    }
+    canvas.clear();
+
+    // Crate the texture
+    let tc = canvas.texture_creator();
+    let mut buffer = tc.create_texture(
+        PixelFormatEnum::RGBX8888,
+        TextureAccess::Streaming,
+        image.width(),
+        image.height()
+    )?;
+
+    // Write and flush the image buffer into it
+    let full_image = Rect::new(0, 0, image.width(), image.height());
+    buffer.with_lock(full_image, |bytes: &mut [u8], _pitch_in_bytes: usize| {
+        // Note: "bytes" here is **write only**.
+        //       Values read have no guaranetees.
+        assert_eq!(bytes.len() % 4, 0, "bytes should fit 32-bit values exactly");
+        for (dst, src) in bytes.chunks_exact_mut(4).zip(image.pixels()) {
+            let (r, g, b, x) = (src.data[0], src.data[1], src.data[2], 0);
+            dst[0] = x;
+            dst[1] = b;
+            dst[2] = g;
+            dst[3] = r;
+        }
+    })?;
+
+    let mut event_pump = sdl_ctx.event_pump()?;
+    'running:
+    loop {
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit {..} |
+                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                    break 'running
+                },
+                _ => {
+                }
+            }
+        }
+
+        canvas.clear();
+        {
+            canvas.copy(&buffer, full_image, full_image)?;
+        }
+        canvas.present();
+    };
+
+    Ok(())
+}
+
+fn write_image(opt: &Opt) -> image::RgbImage {
     let ns: u32 = opt.samples_per_pixel;
     let nx: u32 = opt.width;
     let ny: u32 = opt.height;
@@ -391,8 +464,7 @@ fn write_image(opt: &Opt) -> io::Result<()> {
                   imgbuf.height());
     }
 
-    imgbuf.save(&opt.output)?;
-    Ok(())
+    imgbuf
 }
 
 fn color(ray: &Ray, world: &dyn Hitable, depth: u32) -> Float3 {
