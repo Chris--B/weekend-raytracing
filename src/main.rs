@@ -58,7 +58,7 @@ struct Opt {
     height: u32,
 
     /// Number of rays cast per pixel
-    #[structopt(default_value="10", short, long)]
+    #[structopt(default_value="10", short, long="samples")]
     samples_per_pixel: u32,
 
     /// Number of tiles to subdivide the image into
@@ -66,7 +66,7 @@ struct Opt {
     #[structopt(default_value="16", short, long)]
     tiles: u32,
 
-    /// Number of threads used in `rayon`'s thread pool.
+    /// Number of threads used in thread pool.
     /// 0 uses system default
     #[structopt(default_value="0", short, long)]
     jobs: u8, // Like we're going to run on 256-thread machines.
