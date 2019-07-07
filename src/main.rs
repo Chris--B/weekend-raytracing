@@ -290,6 +290,9 @@ fn show_window(image: &image::RgbImage) -> Result<(), Box<std::error::Error>> {
             canvas.copy(&buffer, full_image, full_image)?;
         }
         canvas.present();
+
+        const DELAY: time::Duration = time::Duration::from_millis(1000);
+        std::thread::sleep(DELAY);
     };
 
     Ok(())
