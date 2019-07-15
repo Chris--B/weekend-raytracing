@@ -18,7 +18,6 @@ use image::{
     GenericImage,
 };
 use pbr;
-use sdl2;
 
 use rand::prelude::*;
 use rayon::prelude::*;
@@ -50,15 +49,15 @@ struct Opt {
     // ===== Options ==========
 
     /// Width of image in pixels
-    #[structopt(default_value="1200", short, long)]
+    #[structopt(default_value="800", short, long)]
     width: u32,
 
     /// Height of image in pixels
-    #[structopt(default_value="800", short, long)]
+    #[structopt(default_value="600", short, long)]
     height: u32,
 
     /// Number of rays cast per pixel
-    #[structopt(default_value="10", short, long)]
+    #[structopt(default_value="2", short, long)]
     samples_per_pixel: u32,
 
     /// Number of tiles to subdivide the image into
@@ -121,20 +120,26 @@ struct Opt {
 /// A subset of our final image.
 /// Tiles do not know about other tiles, but they do know their x offsets.
 struct Tile {
-    // Unique id for each tile
+    /// Unique id for each tile
     pub tile_id: u32,
-    // x coordinate of tile, in the tile grid
+
+    /// x coordinate of tile, in the tile grid
     pub tile_x: u32,
-    // y coordinate of tile, in the tile grid
+
+    /// y coordinate of tile, in the tile grid
     pub tile_y: u32,
-    // x offset into the parent image
+
+    /// x offset into the parent image
     pub offset_x: u32,
-    // y-offset into the parent image
+
+    /// y-offset into the parent image
     pub offset_y: u32,
-    // Pixel data for the sub image.
-    // This is owned by the tile, and copied out to the parent image later.
+
+    /// Pixel data for the sub image
+    /// This is owned by the tile, and copied out to the parent image later.
     pub pixels: image::RgbImage,
-    // A visual indicator of progress on rendering its sub image.
+
+    /// A visual indicator of progress made rendering this tile
     pub progress: pbr::ProgressBar<pbr::Pipe>,
 }
 
@@ -223,76 +228,9 @@ fn main() {
     let imgbuf = write_image(&opt);
 
     imgbuf.save(&opt.output).unwrap();
-    show_window(&imgbuf).unwrap();
-}
-
-fn show_window(image: &image::RgbImage) -> Result<(), Box<std::error::Error>> {
-    use sdl2::{
-        pixels::PixelFormatEnum,
-        render::TextureAccess,
-        event::Event,
-        keyboard::Keycode,
-        rect::Rect,
-    };
-
-    let sdl_ctx = sdl2::init()?;
-    let video = sdl_ctx.video()?;
-
-    let mut canvas;
-    {
-        let window = video.window("yo", image.width(), image.height())
-            .position_centered()
-            .build()?;
-        canvas = window.into_canvas().build()?;
+    if let Ok(path) = opt.output.canonicalize() {
+        println!("Successfully wrote out to {}", path.display());
     }
-    canvas.clear();
-
-    // Crate the texture
-    let tc = canvas.texture_creator();
-    let mut buffer = tc.create_texture(
-        PixelFormatEnum::RGBX8888,
-        TextureAccess::Streaming,
-        image.width(),
-        image.height()
-    )?;
-
-    // Write and flush the image buffer into it
-    let full_image = Rect::new(0, 0, image.width(), image.height());
-    buffer.with_lock(full_image, |bytes: &mut [u8], _pitch_in_bytes: usize| {
-        // Note: "bytes" here is **write only**.
-        //       Values read have no guaranetees.
-        assert_eq!(bytes.len() % 4, 0, "bytes should fit 32-bit values exactly");
-        for (dst, src) in bytes.chunks_exact_mut(4).zip(image.pixels()) {
-            let (r, g, b, x) = (src.data[0], src.data[1], src.data[2], 0);
-            dst[0] = x;
-            dst[1] = b;
-            dst[2] = g;
-            dst[3] = r;
-        }
-    })?;
-
-    let mut event_pump = sdl_ctx.event_pump()?;
-    'running:
-    loop {
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit {..} |
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
-                    break 'running
-                },
-                _ => {
-                }
-            }
-        }
-
-        canvas.clear();
-        {
-            canvas.copy(&buffer, full_image, full_image)?;
-        }
-        canvas.present();
-    };
-
-    Ok(())
 }
 
 fn write_image(opt: &Opt) -> image::RgbImage {
