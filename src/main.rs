@@ -226,7 +226,7 @@ fn main() {
     show_window(&imgbuf).unwrap();
 }
 
-fn show_window(image: &image::RgbImage) -> Result<(), Box<std::error::Error>> {
+fn show_window(image: &image::RgbImage) -> Result<(), Box<dyn std::error::Error>> {
     use sdl2::{
         pixels::PixelFormatEnum,
         render::TextureAccess,
