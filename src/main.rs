@@ -223,7 +223,11 @@ fn main() {
     let imgbuf = write_image(&opt);
 
     imgbuf.save(&opt.output).unwrap();
-    show_window(&imgbuf).unwrap();
+
+    // If we can't open SDL (e.g. no video device), fail elegantly
+    if let Err(err) = show_window(&imgbuf) {
+        eprintln!("Failed to open SDL window: {:#?}", err);
+    }
 }
 
 fn show_window(image: &image::RgbImage) -> Result<(), Box<dyn std::error::Error>> {
